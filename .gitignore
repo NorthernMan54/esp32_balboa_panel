@@ -34,7 +34,7 @@
 # Platformio specific files
 .pioenvs
 .pio
-c_cpp_properties.json
+.vscode
 
 # Project specific files
 config.h

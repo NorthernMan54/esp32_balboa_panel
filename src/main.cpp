@@ -1,20 +1,24 @@
 #include <Arduino.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
 #include <ArduinoLog.h>
+#include <esp_task_wdt.h>
 
 // Local Libraries
 #include "restartReason.h"
 
 #include "main.h"
 #include "config.h"
+#include "wifiModule.h"
 
-WiFiManager wifiManager;
+
 
 void setup()
 {
   // Launch serial for debugging purposes
   Serial.begin(SERIAL_BAUD);
   Log.begin(LOG_LEVEL, &Serial);
+  esp_task_wdt_init(INITIAL_WDT_TIMEOUT, true); // enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL);                       // add current thread to WDT watch
   Log.notice(F(CR "************* WELCOME TO esp32_balboa_panel **************" CR));
   Log.notice(F("Version: %s" CR), VERSION);
   Log.notice(F("Build: %s" CR), BUILD);
@@ -28,11 +32,15 @@ void setup()
   Log.verbose(F("CPU frequency: %d Hz" CR), ESP.getCpuFreqMHz());
   Log.verbose(F("SDK version: %s" CR), ESP.getSdkVersion());
 
-
+  Log.notice(F(CR "************* Wifi Module Setup **************" CR));
+  wifiModuleSetup();
+  Log.notice(F(CR "************* Wifi Module Setup Complete **************" CR));
   Log.notice(F(CR "************* Setup Complete **************" CR));
 }
 
 void loop()
 {
+  wifiModuleLoop();
   // put your main code here, to run repeatedly:
+  esp_task_wdt_reset();
 }
