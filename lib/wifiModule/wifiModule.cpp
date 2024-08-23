@@ -48,6 +48,7 @@ void wifiConnect()
     configTime(gmtOffset_sec, daylightOffset_sec, "pool.ntp.org");
     Log.notice(F("[WiFi]: Connected, IP Address: %s" CR), WiFi.localIP().toString().c_str());
     Log.notice(F("[WiFi]: Time: %s" CR), getTime());
+    otaSetup();
   }
 }
 
@@ -85,6 +86,7 @@ void otaSetup()
       Log.error(F("[WiFi]: OTA Receive Failed" CR));
     else if (error == OTA_END_ERROR)
       Log.error(F("[WiFi]: OTA End Failed" CR)); });
+  Log.notice(F("[WiFi]: Arduino OTA Enabled" CR));
 }
 
 void notifyOfUpdateStarted()

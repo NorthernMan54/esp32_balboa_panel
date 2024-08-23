@@ -40,6 +40,7 @@ void wifiModuleLoop();
 void notifyOfUpdateStarted();
 void notifyOfUpdateEnded();
 void wifiConnect();
+void otaSetup();
 
 String getTime();
 

@@ -4,8 +4,8 @@
 #include <esp_task_wdt.h>
 
 // Local Libraries
-#include "restartReason.h"
-#include "wifiModule.h"
+#include <restartReason.h>
+#include <wifiModule.h>
 
 #include "main.h"
 
