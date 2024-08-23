@@ -5,12 +5,9 @@
 
 // Local Libraries
 #include "restartReason.h"
-
-#include "main.h"
-#include "config.h"
 #include "wifiModule.h"
 
-
+#include "main.h"
 
 void setup()
 {

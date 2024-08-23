@@ -4,8 +4,11 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
+#include <ArduinoOTA.h>
+#include <ArduinoLog.h>
+#include <esp_task_wdt.h>
 
-#include "config.h" // Default passwords and SSID
+#include "../../src/config.h" // Default passwords and SSID
 
 #ifndef WIFI_SSID
 #warning "WIFI_SSID not defined, please define in config.h"
@@ -27,10 +30,17 @@
 #define DAYLIGHT_OFFSET 0
 #endif
 
+#define WIFI_CONNECT_TIMEOUT 10000
+
 const long gmtOffset_sec = GMT_OFFSET;
 const int daylightOffset_sec = DAYLIGHT_OFFSET;
 
 void wifiModuleSetup();
 void wifiModuleLoop();
+void notifyOfUpdateStarted();
+void notifyOfUpdateEnded();
+void wifiConnect();
+
+String getTime();
 
 #endif
