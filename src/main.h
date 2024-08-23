@@ -15,4 +15,14 @@
 #define INITIAL_WDT_TIMEOUT 300 // Reset ESP32 if wifi is not connected within 5 minutes
 #define RUNNING_WDT_TIMEOUT 60 // Reset ESP32 if no SPA messages are received for 60 seconds
 
+#define logSection(section) Log.setShowLevel(false);Log.notice(F(CR "************* " section " **************" CR));Log.setShowLevel(true);
+
+// Various status flags
+
+
+
+
+
+
+
 #endif

@@ -1,12 +1,6 @@
 #ifndef WIFI_MODULE_H
 #define WIFI_MODULE_H
-
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiManager.h>
-#include <ArduinoOTA.h>
-#include <ArduinoLog.h>
-#include <esp_task_wdt.h>
 
 #include "../../src/config.h" // Default passwords and SSID
 

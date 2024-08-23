@@ -1,4 +1,12 @@
 #include "wifiModule.h"
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <ArduinoOTA.h>
+#include <ArduinoLog.h>
+#include <esp_task_wdt.h>
+
+#include <time.h>
+#include "../restartReason/restartReason.h"
 
 WiFiManager wifiManager;
 char gatewayName[20];
@@ -13,6 +21,8 @@ void wifiModuleSetup()
   WiFi.setTxPower(WIFI_POWER_19_5dBm); // this sets wifi to highest power
   WiFi.setHostname(gatewayName);
   ArduinoOTA.setHostname(gatewayName);
+  Log.notice(F("[WiFi]: Hostname: %s" CR), WiFi.getHostname());
+  Log.notice(F("[WiFi]: OTA Hostname: %s" CR), ArduinoOTA.getHostname().c_str());
 }
 
 void wifiModuleLoop()
@@ -47,7 +57,7 @@ void wifiConnect()
   {
     configTime(gmtOffset_sec, daylightOffset_sec, "pool.ntp.org");
     Log.notice(F("[WiFi]: Connected, IP Address: %s" CR), WiFi.localIP().toString().c_str());
-    Log.notice(F("[WiFi]: Time: %s" CR), getTime());
+    Log.notice(F("[WiFi]: Time: %s" CR), getTime().c_str());
     otaSetup();
   }
 }
@@ -73,7 +83,8 @@ void otaSetup()
   ArduinoOTA.onStart(notifyOfUpdateStarted);
   ArduinoOTA.onEnd(notifyOfUpdateEnded);
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
-                        { esp_task_wdt_reset(); });
+                        { Log.noticeln(F("[WiFi]: OTA Progress: %u%%\r"), (progress / (total / 100))); 
+                          esp_task_wdt_reset(); });
   ArduinoOTA.onError([](ota_error_t error)
                      {
     if (error == OTA_AUTH_ERROR)
@@ -97,4 +108,5 @@ void notifyOfUpdateStarted()
 void notifyOfUpdateEnded()
 {
   Log.notice(F("[WiFi]: Arduino OTA Update Complete" CR));
+  setLastRestartReason("OTA Update");
 }

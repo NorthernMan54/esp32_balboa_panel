@@ -1,5 +1,17 @@
 #include "restartReason.h"
 
+
+#include <esp_system.h>
+#include <ArduinoLog.h>
+
+struct RestartReason
+{
+  u_int32_t magicNumber;
+  char description[RR_MAXIMUM_DESCRIPTION_LENGTH];
+};
+
+RTC_NOINIT_ATTR RestartReason restartReason;
+
 String getLastRestartReason()
 {
 
@@ -55,6 +67,28 @@ String getLastRestartReason()
   default:
     break;
   }
+  String lastRestartReason = getLastRestartReasonDescription();
+  if (lastRestartReason != "")
+  {
+    espResetReason += " - " + lastRestartReason;
+  }
+  return espResetReason;
+}
 
-return espResetReason;
+void setLastRestartReason(String reason)
+{
+  restartReason.magicNumber = RR_MAGIC_NUMBER;
+  reason.toCharArray(restartReason.description, RR_MAXIMUM_DESCRIPTION_LENGTH);
+}
+
+String getLastRestartReasonDescription()
+{
+  Log.verbose(F("[RestartReason]: Restart Reason Magic Number: %X" CR), restartReason.magicNumber);
+  Log.verbose(F("[RestartReason]: Restart Reason Description: %s" CR), restartReason.description);
+  if (restartReason.magicNumber == RR_MAGIC_NUMBER)
+  {
+    restartReason.magicNumber = {0};
+    return String(restartReason.description);
+  }
+  return "";
 }
