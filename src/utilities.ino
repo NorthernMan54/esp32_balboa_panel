@@ -2,6 +2,7 @@
 
 /**
  * Calculate uptime and take into account the millis() rollover
+ * returns: unsigned long uptime in seconds
  */
 unsigned long uptime() {
   static unsigned long lastUptime = 0;

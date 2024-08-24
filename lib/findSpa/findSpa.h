@@ -3,10 +3,9 @@
 
 #include <Arduino.h>
 
-
-
-
 void findSpaSetup();
 void findSpaLoop();
+
+bool spaAlreadyDiscovered(IPAddress ip);
 
 #endif

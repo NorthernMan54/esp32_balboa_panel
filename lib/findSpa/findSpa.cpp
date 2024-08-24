@@ -2,13 +2,13 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ArduinoLog.h>
+#include "../../src/utilities.h"
 
 #define BALBOA_UDP_DISCOVERY_PORT 30303
+#define BROADCAST_TIMEOUT 20 // 20 seconds
+#define BROADCAST_INTERVAL 10 // 10 seconds
 
-WiFiUDP Discovery;
-
-// Status of Discovery
-bool listening = false;
+WiFiUDP udp;
 
 void findSpaSetup()
 {
@@ -21,26 +21,60 @@ The WiFi Module can be discovered on an network by sending a UDP broadcast packe
 
 */
 
-char packetBuffer[255];  
-char ReplyBuffer[] = "BWGSPA\r\n00-15-27-00-00-01\r\n"; 
+char packetBuffer[255];
+char ReplyBuffer[] = "BWGSPA\r\n00-15-27-00-00-01\r\n";
+// Status of Discovery
+bool connected = false;
+bool initialSend = false;
+
+IPAddress spaIP[10];
+u_int8_t spaIPCount = 0;
+
+unsigned long lastDiscoveryBroadcast = 0;
+unsigned long lastDiscovery = 0;
 
 void findSpaLoop()
 {
-
-  if (!listening)
+  if (!connected && (lastDiscoveryBroadcast + BROADCAST_TIMEOUT / 3 < uptime() || !initialSend))
   {
-    Discovery.beginMulticast(IPAddress(239, 255, 255, 250), BALBOA_UDP_DISCOVERY_PORT);
-    listening = true;
+    udp.begin(BALBOA_UDP_DISCOVERY_PORT);
+    udp.beginPacket(IPAddress(255, 255, 255, 255), BALBOA_UDP_DISCOVERY_PORT);
+    const char *message = "Discovery: This is the panel, Who is out there?";
+    udp.write((const uint8_t *)message, strlen(message));
+    udp.endPacket();
+    Log.verbose(F("[UDP]: sent discovery message %s" CR), message);
+    lastDiscoveryBroadcast = uptime();
+    initialSend = true;
   }
 
-  int packetSize = Discovery.parsePacket();
+  int packetSize = udp.parsePacket();
   if (packetSize)
   {
     // receive incoming UDP packets
-    Discovery.read(packetBuffer, 255);
-    Discovery.beginPacket(Discovery.remoteIP(), Discovery.remotePort());
-    Discovery.write((const uint8_t *)ReplyBuffer, strlen(ReplyBuffer));
-    Discovery.endPacket();
-    Log.verbose(F("[Discovery]: Spa Connection %s" CR), Discovery.remoteIP(), Discovery.remotePort());
+    udp.read(packetBuffer, 255);
+    udp.beginPacket(udp.remoteIP(), udp.remotePort());
+    // udp.write((const uint8_t *)ReplyBuffer, strlen(ReplyBuffer));
+    udp.endPacket();
+    Log.verbose(F("[UDP]: Available Spa Connection %p %d" CR), udp.remoteIP(), udp.remotePort());
+    Log.verbose(F("[UDP]: Spa Reply '%s'" CR), packetBuffer);
+    if (spaIPCount < 10 && !spaAlreadyDiscovered(udp.remoteIP()))
+    {
+      spaIP[spaIPCount] = udp.remoteIP();
+      Log.notice(F("[UDP]: Added Spa %p" CR), spaIP[spaIPCount]);
+      spaIPCount++;
+    }
+    connected = true;
   }
+}
+
+bool spaAlreadyDiscovered(IPAddress ip)
+{
+  for (int i = 0; i < spaIPCount; i++)
+  {
+    if (spaIP[i] == ip)
+    {
+      return true;
+    }
+  }
+  return false;
 }

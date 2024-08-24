@@ -40,7 +40,10 @@ void setup()
 void loop()
 {
   wifiModuleLoop();
-  findSpaLoop();
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    findSpaLoop();
+    esp_task_wdt_reset();
+  }
   // put your main code here, to run repeatedly:
-  esp_task_wdt_reset();
 }
