@@ -5,7 +5,7 @@
 #include "../../src/utilities.h"
 
 #define BALBOA_UDP_DISCOVERY_PORT 30303
-#define BROADCAST_TIMEOUT 20 // 20 seconds
+#define BROADCAST_TIMEOUT 20  // 20 seconds
 #define BROADCAST_INTERVAL 10 // 10 seconds
 
 WiFiUDP udp;
@@ -27,44 +27,75 @@ char ReplyBuffer[] = "BWGSPA\r\n00-15-27-00-00-01\r\n";
 bool connected = false;
 bool initialSend = false;
 
+bool listening = false;
+
 IPAddress spaIP[10];
 u_int8_t spaIPCount = 0;
 
 unsigned long lastDiscoveryBroadcast = 0;
 unsigned long lastDiscovery = 0;
 
+/* Find Spa Loop
+
+1 - If spaIPCount is 0, send a UDP broadcast packet ('Discovery: Who is out there?') on port 30303 every BROADCAST_TIMEOUT / 3
+
+
+*/
+
 void findSpaLoop()
 {
-  if (!connected && (lastDiscoveryBroadcast + BROADCAST_TIMEOUT / 3 < uptime() || !initialSend))
-  {
-    udp.begin(BALBOA_UDP_DISCOVERY_PORT);
-    udp.beginPacket(IPAddress(255, 255, 255, 255), BALBOA_UDP_DISCOVERY_PORT);
-    const char *message = "Discovery: This is the panel, Who is out there?";
-    udp.write((const uint8_t *)message, strlen(message));
-    udp.endPacket();
-    Log.verbose(F("[UDP]: sent discovery message %s" CR), message);
-    lastDiscoveryBroadcast = uptime();
-    initialSend = true;
-  }
-
-  int packetSize = udp.parsePacket();
-  if (packetSize)
-  {
-    // receive incoming UDP packets
-    udp.read(packetBuffer, 255);
-    udp.beginPacket(udp.remoteIP(), udp.remotePort());
-    // udp.write((const uint8_t *)ReplyBuffer, strlen(ReplyBuffer));
-    udp.endPacket();
-    Log.verbose(F("[UDP]: Available Spa Connection %p %d" CR), udp.remoteIP(), udp.remotePort());
-    Log.verbose(F("[UDP]: Spa Reply '%s'" CR), packetBuffer);
-    if (spaIPCount < 10 && !spaAlreadyDiscovered(udp.remoteIP()))
+  if (!spaIPCount)
+  { // No Spa's found yet
+    if (!listening)
     {
-      spaIP[spaIPCount] = udp.remoteIP();
-      Log.notice(F("[UDP]: Added Spa %p" CR), spaIP[spaIPCount]);
-      spaIPCount++;
+      udp.begin(BALBOA_UDP_DISCOVERY_PORT);
+      listening = true;
     }
-    connected = true;
+    if ((lastDiscoveryBroadcast + BROADCAST_TIMEOUT / 3 < uptime() || !initialSend))
+    {
+
+      udp.beginPacket(IPAddress(255, 255, 255, 255), BALBOA_UDP_DISCOVERY_PORT);
+      const char *message = "Discovery: This is the panel, Who is out there?";
+      udp.write((const uint8_t *)message, strlen(message));
+      udp.endPacket();
+      Log.verbose(F("[UDP]: sent discovery message %s" CR), message);
+      lastDiscoveryBroadcast = uptime();
+      initialSend = true;
+    }
+
+    int packetSize = udp.parsePacket();
+    if (packetSize)
+    {
+      // receive incoming UDP packets
+      udp.read(packetBuffer, 255);
+      Log.verbose(F("[UDP]: Available Spa Connection %p %d" CR), udp.remoteIP(), udp.remotePort());
+      Log.verbose(F("[UDP]: Spa Reply '%s'" CR), packetBuffer);
+      if (spaIPCount < 10 && !spaAlreadyDiscovered(udp.remoteIP()))
+      {
+        spaIP[spaIPCount] = udp.remoteIP();
+        Log.notice(F("[UDP]: Added Spa %p" CR), spaIP[spaIPCount]);
+        spaIPCount++;
+      }
+    }
+  } else {
+    udp.stop();
+    listening = false;
   }
+}
+
+void resetSpaCount()
+{
+  spaIPCount = 0;
+}
+
+bool spaFound()
+{
+  return spaIPCount > 0;
+}
+
+IPAddress getSpaIP()
+{
+  return spaIPCount ? spaIP[spaIPCount - 1] : IPAddress(0, 0, 0, 0);
 }
 
 bool spaAlreadyDiscovered(IPAddress ip)
