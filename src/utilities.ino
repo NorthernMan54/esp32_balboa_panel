@@ -15,3 +15,14 @@ unsigned long uptime() {
   lastUptime = uptime;
   return uptime;
 }
+
+String msgToString(uint8_t *data, uint8_t len) {
+  String s;
+  for (int i = 0; i < len; i++) {
+    if (data[i] < 0x10)
+      s += "0";
+    s += String(data[i], HEX);
+    s += " ";
+  }
+  return s;
+}

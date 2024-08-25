@@ -42,7 +42,7 @@ unsigned long lastDiscovery = 0;
 
 */
 
-void findSpaLoop()
+bool findSpaLoop()
 {
   if (!spaIPCount)
   { // No Spa's found yet
@@ -81,6 +81,7 @@ void findSpaLoop()
     udp.stop();
     listening = false;
   }
+  return (spaIPCount > 0);
 }
 
 void resetSpaCount()

@@ -8,6 +8,7 @@
 #include <wifiModule.h>
 #include <findSpa.h>
 #include <spaCommunication.h>
+#include <spaMessage.h>
 
 #include "main.h"
 
@@ -35,8 +36,10 @@ void setup()
   wifiModuleSetup();
   logSection("Find Spa Setup");
   findSpaSetup();
- logSection("Spa Communications Setup");
+  logSection("Spa Communications Setup");
   spaCommunicationSetup();
+logSection("Spa Message Setup");
+  spaMessageSetup();
   logSection("Setup Complete");
 }
 
@@ -45,12 +48,17 @@ void loop()
   wifiModuleLoop();
   if (WiFi.status() == WL_CONNECTED)
   {
-    findSpaLoop();
-    if (spaFound())
+    if (findSpaLoop())
     {
-      spaCommunicationLoop(getSpaIP());
+      if (!spaCommunicationLoop(getSpaIP()))
+      {
+        resetSpaCount();
+      }
+      else
+      {
+        spaMessageLoop();
+        esp_task_wdt_reset();
+      }
     }
-    esp_task_wdt_reset();
   }
-  // put your main code here, to run repeatedly:
 }

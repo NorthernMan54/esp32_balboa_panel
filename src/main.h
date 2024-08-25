@@ -1,5 +1,6 @@
 #ifndef MAIN_H
 #define MAIN_H
+#include <Arduino.h>
 
 #ifndef SERIAL_BAUD
 #define SERIAL_BAUD 115200
@@ -17,12 +18,23 @@
 
 #define logSection(section) Log.setShowLevel(false);Log.notice(F(CR "************* " section " **************" CR));Log.setShowLevel(true);
 
-// Various status flags
+// Global Message Queues
 
+#define BALBOA_MESSAGE_SIZE 50
 
+extern QueueHandle_t spaWriteQueue;
+extern QueueHandle_t spaReadQueue;
 
+extern struct spaReadQueueMessage
+{
+  u_int8_t message[BALBOA_MESSAGE_SIZE];
+  int length;
+} spaReadQueueMessage_t;
 
-
-
+extern struct spaWriteQueueMessage
+{
+  u_int8_t message[BALBOA_MESSAGE_SIZE];
+  int length;
+} spaWriteQueueMessage_t;
 
 #endif

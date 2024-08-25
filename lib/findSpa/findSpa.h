@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 void findSpaSetup();
-void findSpaLoop();
+bool findSpaLoop();
 void resetSpaCount();
 bool spaFound();
 IPAddress getSpaIP();
