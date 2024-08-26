@@ -11,6 +11,8 @@ void parseStatusMessage(u_int8_t *, int);
 void parseInformationResponse(u_int8_t *, int);
 void parseConfigurationResponse(u_int8_t *, int);
 void parseWiFiModuleConfigurationResponse(u_int8_t *, int);
+void parsePreferencesResponse(u_int8_t *, int);
+void configurationRequest();
 
 void spaMessageSetup()
 {
@@ -38,6 +40,9 @@ void spaMessageLoop()
       case Settings_0x04_Response_Type:
         Log.verbose(F("Settings 0x04 Response: %s" CR), msgToString(message.message, message.length).c_str());
         break;
+      case Preferences_Type:
+        parsePreferencesResponse(message.message, message.length);
+        break;
       case Fault_Log_Type:
         Log.verbose(F("Fault Log Response: %s" CR), msgToString(message.message, message.length).c_str());
         break;
@@ -54,14 +59,106 @@ void spaMessageLoop()
   }
   else
   {
-    if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest + 60 * 60 * 12 < uptime())
+    if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest == 0)
     {
-      Log.verbose(F("Requesting Configuration" CR));
-      spaConfigurationData.lastRequest = uptime();
-      // requestConfiguration();
+      Log.verbose(F("Requesting Inital Configuration" CR));
+      configurationRequest();
     }
     //  Log.verbose(F("No messages in Read Queue" CR));
   }
+}
+
+/*
+
+
+*/
+
+void configurationRequest()
+{
+  unsigned char byte_array[50];
+  int offset = 0;
+
+  unsigned char config_request[] = CONFIGURATION_REQUEST;
+  unsigned char settings_request[] = SETTINGS_0X04_REQUEST;
+  unsigned char filter_settings_request[] = FILTER_SETTINGS_REQUEST;
+  unsigned char information_request[] = INFORMATION_REQUEST;
+
+  if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest == 0)
+  {
+    append_request(byte_array, &offset, config_request, sizeof(config_request));
+    spaConfigurationData.lastRequest = uptime();
+  }
+  if (spaSettings0x04Data.lastUpdate == 0 && spaSettings0x04Data.lastRequest == 0)
+  {
+    append_request(byte_array, &offset, settings_request, sizeof(settings_request));
+    spaSettings0x04Data.lastRequest = uptime();
+  }
+  if (spaFilterSettingsData.lastUpdate == 0 && spaFilterSettingsData.lastRequest == 0)
+  {
+    append_request(byte_array, &offset, filter_settings_request, sizeof(filter_settings_request));
+    spaFilterSettingsData.lastRequest = uptime();
+  }
+  if (spaInformationData.lastUpdate == 0 && spaInformationData.lastRequest == 0)
+  {
+    append_request(byte_array, &offset, information_request, sizeof(information_request));
+    spaInformationData.lastRequest = uptime();
+  }
+
+  spaWriteQueueMessage messageToSend;
+  messageToSend.length = offset;
+  memcpy(messageToSend.message, byte_array, offset);
+  if (xQueueSend(spaWriteQueue, &messageToSend, 0) != pdTRUE)
+  {
+    Log.error(F("SPA Write Queue full, dropped %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+  }
+  else
+  {
+    Log.verbose(F("Data added to Write Queue %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+  }
+}
+
+/*
+
+Preferences Response
+
+A Preferences Response is sent by the Main Board after a client sends the appropriate Settings Request (using the same Channel as the request) or when a client sends a Set Preference Request (using the broadcast Channel).
+
+Type Code: 0x26
+
+Length: 23
+
+Arguments:
+
+Byte(s)	Name	Description/Values
+0	??	0
+1	Reminders	0=OFF, 1=OFF
+2	??	0
+3	Temperature Scale	0=1°F, 1=0.5°C
+4	Clock Mode	0=12-hour, 1=24-hour
+5	Cleanup Cycle	0=OFF, 1-8 (30 minute increments)
+6	Dolphin Address	0=none, 1-7=address
+7	??	0
+8	M8 Artificial Intelligence	0=OFF, 1=ON
+9-17	??	0
+
+
+*/
+
+void parsePreferencesResponse(u_int8_t *message, int length)
+{
+  spaPreferencesData.crc = message[message[1]];
+  spaPreferencesData.lastUpdate = uptime();
+
+  u_int8_t *hexArray = message + 5;
+
+  spaPreferencesData.reminders = hexArray[1];
+  spaPreferencesData.tempScale = hexArray[3];
+  spaPreferencesData.clockMode = hexArray[4];
+  spaPreferencesData.cleanupCycle = hexArray[5];
+  spaPreferencesData.dolphinAddress = hexArray[6];
+  spaPreferencesData.m8AI = hexArray[8];
+
+  Log.verbose(F("Preferences Response: %s" CR), msgToString(hexArray, length - 5).c_str());
 }
 
 /*

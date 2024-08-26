@@ -27,6 +27,12 @@
 #define Configuration_Type 0x2E
 #define WiFi_Module_Configuration_Type 0x94
 
+// Configuration, Settings 0x04, Filter Cycles, and Information Messages
+#define CONFIGURATION_REQUEST   {0x7e, 0x08, 0x0a, 0xbf, 0x22, 0x00, 0x00, 0x01, 0x58, 0x7e}
+#define SETTINGS_0X04_REQUEST   {0x7e, 0x08, 0x0a, 0xbf, 0x22, 0x04, 0x00, 0x00, 0xf4, 0x7e}
+#define FILTER_SETTINGS_REQUEST {0x7e, 0x08, 0x0a, 0xbf, 0x22, 0x01, 0x00, 0x00, 0x34, 0x7e}
+#define INFORMATION_REQUEST     {0x7e, 0x08, 0x0a, 0xbf, 0x22, 0x02, 0x00, 0x00, 0x89, 0x7e}
+
 struct SpaStatusData
 {
   uint8_t crc;
@@ -62,7 +68,7 @@ struct SpaStatusData
   bool light2;
 
   bool mister;
-  
+
   float setTemp;
   uint8_t notification;
   uint8_t flags19;
@@ -94,6 +100,10 @@ struct SpaConfigurationData
 
 struct SpaFilterSettingsData
 {
+
+  unsigned long lastUpdate = 0;
+  unsigned long lastRequest = 0;
+
   uint8_t filt1Hour;
   uint8_t filt1Minute;
   uint8_t filt1DurationHour;
@@ -116,23 +126,49 @@ struct SpaFaultLogData
   uint8_t minutes;
 } spaFaultLogData;
 
-struct SpaInformationData {
+struct SpaInformationData
+{
   uint8_t crc;
   unsigned long lastUpdate = 0;
+  unsigned long lastRequest = 0;
+
   char softwareID[9];
   char model[9];
   uint8_t setupNumber;
   uint8_t voltage;
   uint8_t heaterType;
   char dipSwitch[3];
-} spaInformationData; 
+} spaInformationData;
 
-struct WiFiModuleConfigurationData {
+struct WiFiModuleConfigurationData
+{
   uint8_t crc;
   unsigned long lastUpdate = 0;
+  unsigned long lastRequest = 0;
 
   char macAddress[11];
 } wiFiModuleConfigurationData;
 
+struct SpaSettings0x04Data
+{
+  uint8_t crc;
+  unsigned long lastUpdate = 0;
+  unsigned long lastRequest = 0;
+
+} spaSettings0x04Data;
+
+struct SpaPreferencesData
+{
+  uint8_t crc;
+  unsigned long lastUpdate = 0;
+  unsigned long lastRequest = 0;
+
+  uint8_t reminders;
+  uint8_t tempScale;
+  uint8_t clockMode;
+  uint8_t cleanupCycle;
+  uint8_t dolphinAddress;
+  uint8_t m8AI;
+} spaPreferencesData;
 
 #endif

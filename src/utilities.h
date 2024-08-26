@@ -7,5 +7,6 @@
  */
 unsigned long uptime();
 String msgToString(uint8_t *data, uint8_t len);
+void append_request(unsigned char *byte_array, int *offset, unsigned char *request, int request_size);
 
 #endif
