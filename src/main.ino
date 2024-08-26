@@ -9,6 +9,7 @@
 #include <findSpa.h>
 #include <spaCommunication.h>
 #include <spaMessage.h>
+#include <spaWebServer.h>
 
 #include "main.h"
 
@@ -38,8 +39,10 @@ void setup()
   findSpaSetup();
   logSection("Spa Communications Setup");
   spaCommunicationSetup();
-logSection("Spa Message Setup");
+  logSection("Spa Message Setup");
   spaMessageSetup();
+  logSection("Web Server Setup");
+  spaWebServerSetup();
   logSection("Setup Complete");
 }
 
@@ -57,6 +60,7 @@ void loop()
       else
       {
         spaMessageLoop();
+        spaWebServerLoop();
         esp_task_wdt_reset();
       }
     }

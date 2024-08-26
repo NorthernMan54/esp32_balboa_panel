@@ -37,7 +37,7 @@ struct SpaStatusData
 {
   uint8_t crc;
   unsigned long lastUpdate = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 
   uint8_t spaState;
   uint8_t initMode;
@@ -71,6 +71,8 @@ struct SpaStatusData
   bool mister;
 
   float setTemp;
+  float lowSetTemp;
+  float highSetTemp;
   uint8_t notification;
   uint8_t flags19;
   bool settingsLock;
@@ -82,7 +84,7 @@ struct SpaConfigurationData
   uint8_t crc;
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 
   uint8_t pump1;
   uint8_t pump2;
@@ -105,7 +107,7 @@ struct SpaFilterSettingsData
 
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 
   uint8_t filt1Hour;
   uint8_t filt1Minute;
@@ -134,7 +136,7 @@ struct SpaInformationData
   uint8_t crc;
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 
   char softwareID[9];
   char model[9];
@@ -149,7 +151,7 @@ struct WiFiModuleConfigurationData
   uint8_t crc;
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 
   char macAddress[11];
 };
@@ -159,7 +161,7 @@ struct SpaSettings0x04Data
   uint8_t crc;
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 };
 
 struct SpaPreferencesData
@@ -167,7 +169,7 @@ struct SpaPreferencesData
   uint8_t crc;
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
-  unsigned long magicNumber = 0;
+  u_int32_t magicNumber;
 
   uint8_t reminders;
   uint8_t tempScale;

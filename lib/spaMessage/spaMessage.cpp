@@ -6,7 +6,9 @@
 
 #define TwoBit(value, bit) (((value) >> (bit)) & 0x03)
 
-//
+#define MAGIC_NUMBER 0x12345678
+
+// Global Variables
 RTC_NOINIT_ATTR SpaStatusData spaStatusData;
 RTC_NOINIT_ATTR SpaConfigurationData spaConfigurationData;
 RTC_NOINIT_ATTR SpaInformationData spaInformationData;
@@ -16,7 +18,7 @@ RTC_NOINIT_ATTR SpaPreferencesData spaPreferencesData;
 RTC_NOINIT_ATTR WiFiModuleConfigurationData wiFiModuleConfigurationData;
 
 // private functions
-void parseStatusMessage(u_int8_t *, int);
+bool parseStatusMessage(u_int8_t *, int);
 void parseInformationResponse(u_int8_t *, int);
 void parseConfigurationResponse(u_int8_t *, int);
 void parseWiFiModuleConfigurationResponse(u_int8_t *, int);
@@ -26,40 +28,54 @@ void configurationRequest();
 void spaMessageSetup()
 {
   // put your setup code here, to run once:
-  if(spaStatusData.magicNumber != 0x12345678){
-    Log.verbose(F("spaMessageSetup()" CR));
+  if (spaStatusData.magicNumber != MAGIC_NUMBER)
+  {
+    Log.verbose(F("spaStatusData.magicNumber: %x" CR), spaStatusData.magicNumber);
     spaStatusData = {};
-    spaStatusData.magicNumber = 0x12345678;
+    spaStatusData.magicNumber = MAGIC_NUMBER;
   }
 
-  if(spaConfigurationData.magicNumber != 0x12345678){
+  if (spaConfigurationData.magicNumber != MAGIC_NUMBER)
+  {
+    Log.verbose(F("spaConfigurationData.magicNumber: %x" CR), spaConfigurationData.magicNumber);
     spaConfigurationData = {};
-    spaConfigurationData.magicNumber = 0x12345678;
+    spaConfigurationData.magicNumber = MAGIC_NUMBER;
   }
 
-  if(spaInformationData.magicNumber != 0x12345678){
+  if (spaInformationData.magicNumber != MAGIC_NUMBER)
+  {
+    Log.verbose(F("spaInformationData.magicNumber: %x" CR), spaInformationData.magicNumber);
+
     spaInformationData = {};
-    spaInformationData.magicNumber = 0x12345678;
+    spaInformationData.magicNumber = MAGIC_NUMBER;
   }
 
-  if(spaSettings0x04Data.magicNumber != 0x12345678){
+  if (spaSettings0x04Data.magicNumber != MAGIC_NUMBER)
+  {
+    Log.verbose(F("spaSettings0x04Data.magicNumber: %x" CR), spaSettings0x04Data.magicNumber);
+
     spaSettings0x04Data = {};
-    spaSettings0x04Data.magicNumber = 0x12345678;
+    spaSettings0x04Data.magicNumber = MAGIC_NUMBER;
   }
 
-  if(spaFilterSettingsData.magicNumber != 0x12345678){
+  if (spaFilterSettingsData.magicNumber != MAGIC_NUMBER)
+  {
     spaFilterSettingsData = {};
-    spaFilterSettingsData.magicNumber = 0x12345678;
+    spaFilterSettingsData.magicNumber = MAGIC_NUMBER;
   }
 
-  if(spaPreferencesData.magicNumber != 0x12345678){
+  if (spaPreferencesData.magicNumber != MAGIC_NUMBER)
+  {
+    Log.verbose(F("spaPreferencesData.magicNumber: %x" CR), spaPreferencesData.magicNumber);
+
     spaPreferencesData = {};
-    spaPreferencesData.magicNumber = 0x12345678;
+    spaPreferencesData.magicNumber = MAGIC_NUMBER;
   }
 
-  if(wiFiModuleConfigurationData.magicNumber != 0x12345678){
+  if (wiFiModuleConfigurationData.magicNumber != MAGIC_NUMBER)
+  {
     wiFiModuleConfigurationData = {};
-    wiFiModuleConfigurationData.magicNumber = 0x12345678;
+    wiFiModuleConfigurationData.magicNumber = MAGIC_NUMBER;
   }
 }
 
@@ -361,54 +377,69 @@ Byte	Name	Description/Values
 25-26	??	0
 */
 
-void parseStatusMessage(u_int8_t *message, int length)
+bool parseStatusMessage(u_int8_t *message, int length)
 {
 
-  spaStatusData.crc = message[message[1]];
-  spaStatusData.lastUpdate = getTime();
+  if (spaStatusData.crc != message[message[1]])
+  {
 
-  u_int8_t *hexArray = message + 5;
-  spaStatusData.spaState = hexArray[0];
-  spaStatusData.initMode = hexArray[1];
-  spaStatusData.currentTemp = (hexArray[2] != 0xff ? (hexArray[9] & 0x01 ? (float)hexArray[2] / 2 : hexArray[2]) : spaStatusData.currentTemp);
-  // Combine hour and minute into a time string
-  uint8_t hour = hexArray[3];
-  uint8_t minute = hexArray[4];
-  sprintf(spaStatusData.time, "%02d:%02d", hour, minute);
+    spaStatusData.crc = message[message[1]];
+    spaStatusData.lastUpdate = getTime();
 
-  spaStatusData.heatingMode = hexArray[5];
-  spaStatusData.reminderType = hexArray[6];
-  spaStatusData.sensorA = hexArray[7];
-  spaStatusData.sensorB = hexArray[8];
+    u_int8_t *hexArray = message + 5;
+    spaStatusData.spaState = hexArray[0];
+    spaStatusData.initMode = hexArray[1];
+    spaStatusData.currentTemp = (hexArray[2] != 0xff ? (hexArray[9] & 0x01 ? (float)hexArray[2] / 2 : hexArray[2]) : spaStatusData.currentTemp);
+    // Combine hour and minute into a time string
+    uint8_t hour = hexArray[3];
+    uint8_t minute = hexArray[4];
+    sprintf(spaStatusData.time, "%02d:%02d", hour, minute);
 
-  spaStatusData.tempScale = hexArray[9] & 0x01;
-  spaStatusData.clockMode = hexArray[9] & 0x02;
-  spaStatusData.filterMode = TwoBit(hexArray[9], 2);
-  spaStatusData.panelLocked = hexArray[9] & 0x20;
+    spaStatusData.heatingMode = hexArray[5];
+    spaStatusData.reminderType = hexArray[6];
+    spaStatusData.sensorA = hexArray[7];
+    spaStatusData.sensorB = hexArray[8];
 
-  spaStatusData.tempRange = bitRead(hexArray[10], 2);
-  spaStatusData.needsHeat = bitRead(hexArray[10], 3);
-  spaStatusData.heatingState = TwoBit(hexArray[10], 4);
+    spaStatusData.tempScale = hexArray[9] & 0x01;
+    spaStatusData.clockMode = hexArray[9] & 0x02;
+    spaStatusData.filterMode = TwoBit(hexArray[9], 2);
+    spaStatusData.panelLocked = hexArray[9] & 0x20;
 
-  spaStatusData.pump1 = TwoBit(hexArray[11], 0);
-  spaStatusData.pump2 = TwoBit(hexArray[11], 2);
-  spaStatusData.pump3 = TwoBit(hexArray[11], 4);
-  spaStatusData.pump4 = TwoBit(hexArray[11], 6);
-  spaStatusData.pump5 = TwoBit(hexArray[12], 0);
-  spaStatusData.pump6 = TwoBit(hexArray[12], 2);
+    spaStatusData.tempRange = bitRead(hexArray[10], 2);
+    spaStatusData.needsHeat = bitRead(hexArray[10], 3);
+    spaStatusData.heatingState = TwoBit(hexArray[10], 4);
 
-  spaStatusData.circ = bitRead(hexArray[13], 1);
-  spaStatusData.blower = TwoBit(hexArray[13], 2);
+    spaStatusData.pump1 = TwoBit(hexArray[11], 0);
+    spaStatusData.pump2 = TwoBit(hexArray[11], 2);
+    spaStatusData.pump3 = TwoBit(hexArray[11], 4);
+    spaStatusData.pump4 = TwoBit(hexArray[11], 6);
+    spaStatusData.pump5 = TwoBit(hexArray[12], 0);
+    spaStatusData.pump6 = TwoBit(hexArray[12], 2);
 
-  spaStatusData.light1 = bitRead(hexArray[14], 0);
-  spaStatusData.light2 = bitRead(hexArray[14], 2);
+    spaStatusData.circ = bitRead(hexArray[13], 1);
+    spaStatusData.blower = TwoBit(hexArray[13], 2);
 
-  spaStatusData.mister = hexArray[15];
+    spaStatusData.light1 = bitRead(hexArray[14], 0);
+    spaStatusData.light2 = bitRead(hexArray[14], 2);
 
-  spaStatusData.notification = hexArray[18];
-  spaStatusData.flags19 = hexArray[19];
+    spaStatusData.mister = hexArray[15];
 
-  spaStatusData.setTemp = hexArray[20];
-  spaStatusData.settingsLock = bitRead(hexArray[21], 3);
-  spaStatusData.m8CycleTime = hexArray[24];
+    spaStatusData.notification = hexArray[18];
+    spaStatusData.flags19 = hexArray[19];
+
+    spaStatusData.setTemp = (spaStatusData.tempScale ? (float)hexArray[20] / 2 : hexArray[20]);
+    if (spaStatusData.tempRange)
+    {
+      spaStatusData.highSetTemp = (spaStatusData.tempScale ? (float)hexArray[20] / 2 : hexArray[20]);
+    }
+    else
+    {
+      spaStatusData.lowSetTemp = (spaStatusData.tempScale ? (float)hexArray[20] / 2 : hexArray[20]);
+    }
+
+    spaStatusData.settingsLock = bitRead(hexArray[21], 3);
+    spaStatusData.m8CycleTime = hexArray[24];
+    return true;
+  }
+  return false;
 }
