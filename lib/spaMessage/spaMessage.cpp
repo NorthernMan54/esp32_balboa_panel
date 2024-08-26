@@ -6,6 +6,15 @@
 
 #define TwoBit(value, bit) (((value) >> (bit)) & 0x03)
 
+//
+RTC_NOINIT_ATTR SpaStatusData spaStatusData;
+RTC_NOINIT_ATTR SpaConfigurationData spaConfigurationData;
+RTC_NOINIT_ATTR SpaInformationData spaInformationData;
+RTC_NOINIT_ATTR SpaSettings0x04Data spaSettings0x04Data;
+RTC_NOINIT_ATTR SpaFilterSettingsData spaFilterSettingsData;
+RTC_NOINIT_ATTR SpaPreferencesData spaPreferencesData;
+RTC_NOINIT_ATTR WiFiModuleConfigurationData wiFiModuleConfigurationData;
+
 // private functions
 void parseStatusMessage(u_int8_t *, int);
 void parseInformationResponse(u_int8_t *, int);
@@ -17,6 +26,41 @@ void configurationRequest();
 void spaMessageSetup()
 {
   // put your setup code here, to run once:
+  if(spaStatusData.magicNumber != 0x12345678){
+    Log.verbose(F("spaMessageSetup()" CR));
+    spaStatusData = {};
+    spaStatusData.magicNumber = 0x12345678;
+  }
+
+  if(spaConfigurationData.magicNumber != 0x12345678){
+    spaConfigurationData = {};
+    spaConfigurationData.magicNumber = 0x12345678;
+  }
+
+  if(spaInformationData.magicNumber != 0x12345678){
+    spaInformationData = {};
+    spaInformationData.magicNumber = 0x12345678;
+  }
+
+  if(spaSettings0x04Data.magicNumber != 0x12345678){
+    spaSettings0x04Data = {};
+    spaSettings0x04Data.magicNumber = 0x12345678;
+  }
+
+  if(spaFilterSettingsData.magicNumber != 0x12345678){
+    spaFilterSettingsData = {};
+    spaFilterSettingsData.magicNumber = 0x12345678;
+  }
+
+  if(spaPreferencesData.magicNumber != 0x12345678){
+    spaPreferencesData = {};
+    spaPreferencesData.magicNumber = 0x12345678;
+  }
+
+  if(wiFiModuleConfigurationData.magicNumber != 0x12345678){
+    wiFiModuleConfigurationData = {};
+    wiFiModuleConfigurationData.magicNumber = 0x12345678;
+  }
 }
 
 void spaMessageLoop()
@@ -86,22 +130,22 @@ void configurationRequest()
   if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest == 0)
   {
     append_request(byte_array, &offset, config_request, sizeof(config_request));
-    spaConfigurationData.lastRequest = uptime();
+    spaConfigurationData.lastRequest = getTime();
   }
   if (spaSettings0x04Data.lastUpdate == 0 && spaSettings0x04Data.lastRequest == 0)
   {
     append_request(byte_array, &offset, settings_request, sizeof(settings_request));
-    spaSettings0x04Data.lastRequest = uptime();
+    spaSettings0x04Data.lastRequest = getTime();
   }
   if (spaFilterSettingsData.lastUpdate == 0 && spaFilterSettingsData.lastRequest == 0)
   {
     append_request(byte_array, &offset, filter_settings_request, sizeof(filter_settings_request));
-    spaFilterSettingsData.lastRequest = uptime();
+    spaFilterSettingsData.lastRequest = getTime();
   }
   if (spaInformationData.lastUpdate == 0 && spaInformationData.lastRequest == 0)
   {
     append_request(byte_array, &offset, information_request, sizeof(information_request));
-    spaInformationData.lastRequest = uptime();
+    spaInformationData.lastRequest = getTime();
   }
 
   spaWriteQueueMessage messageToSend;
@@ -147,7 +191,7 @@ Byte(s)	Name	Description/Values
 void parsePreferencesResponse(u_int8_t *message, int length)
 {
   spaPreferencesData.crc = message[message[1]];
-  spaPreferencesData.lastUpdate = uptime();
+  spaPreferencesData.lastUpdate = getTime();
 
   u_int8_t *hexArray = message + 5;
 
@@ -186,7 +230,7 @@ Byte(s)	Name	Values
 void parseWiFiModuleConfigurationResponse(u_int8_t *message, int length)
 {
   wiFiModuleConfigurationData.crc = message[message[1]];
-  wiFiModuleConfigurationData.lastUpdate = uptime();
+  wiFiModuleConfigurationData.lastUpdate = getTime();
 
   u_int8_t *hexArray = message + 5;
 
@@ -222,7 +266,7 @@ Byte	Name	Values
 void parseConfigurationResponse(u_int8_t *message, int length)
 {
   spaConfigurationData.crc = message[message[1]];
-  spaConfigurationData.lastUpdate = uptime();
+  spaConfigurationData.lastUpdate = getTime();
 
   u_int8_t *hexArray = message + 5;
 
@@ -272,7 +316,7 @@ Byte(s)	Name	Description/Values
 void parseInformationResponse(u_int8_t *message, int length)
 {
   spaInformationData.crc = message[message[1]];
-  spaInformationData.lastUpdate = uptime();
+  spaInformationData.lastUpdate = getTime();
 
   u_int8_t *hexArray = message + 5;
 
@@ -321,7 +365,7 @@ void parseStatusMessage(u_int8_t *message, int length)
 {
 
   spaStatusData.crc = message[message[1]];
-  spaStatusData.lastUpdate = uptime();
+  spaStatusData.lastUpdate = getTime();
 
   u_int8_t *hexArray = message + 5;
   spaStatusData.spaState = hexArray[0];

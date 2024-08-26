@@ -16,6 +16,17 @@ unsigned long uptime() {
   return uptime;
 }
 
+unsigned long getTime() {
+  time_t now;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    //Serial.println("Failed to obtain time");
+    return(0);
+  }
+  time(&now);
+  return now;
+}
+
 String msgToString(uint8_t *data, uint8_t len) {
   String s;
   for (int i = 0; i < len; i++) {

@@ -57,12 +57,12 @@ void wifiConnect()
   {
     configTime(gmtOffset_sec, daylightOffset_sec, "pool.ntp.org");
     Log.notice(F("[WiFi]: Connected, IP Address: %s" CR), WiFi.localIP().toString().c_str());
-    Log.notice(F("[WiFi]: Time: %s" CR), getTime().c_str());
+    Log.notice(F("[WiFi]: Time: %s" CR), getStringTime().c_str());
     otaSetup();
   }
 }
 
-String getTime()
+String getStringTime()
 {
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo))

@@ -36,6 +36,6 @@ void notifyOfUpdateEnded();
 void wifiConnect();
 void otaSetup();
 
-String getTime();
+String getStringTime();
 
 #endif
