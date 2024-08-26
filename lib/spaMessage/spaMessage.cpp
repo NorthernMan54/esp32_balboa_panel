@@ -42,6 +42,10 @@ void spaMessageSetup()
     spaConfigurationData.magicNumber = MAGIC_NUMBER;
   }
 
+  Log.verbose(F("spaConfigurationData.lastUpdate: %d" CR), spaConfigurationData.lastUpdate);
+  Log.verbose(F("spaConfigurationData.lastRequest: %d" CR), spaConfigurationData.lastRequest);
+  Log.verbose(F("spaConfigurationData.pump1: %d" CR), spaConfigurationData.pump1);
+
   if (spaInformationData.magicNumber != MAGIC_NUMBER)
   {
     Log.verbose(F("spaInformationData.magicNumber: %x" CR), spaInformationData.magicNumber);
@@ -439,6 +443,8 @@ bool parseStatusMessage(u_int8_t *message, int length)
 
     spaStatusData.settingsLock = bitRead(hexArray[21], 3);
     spaStatusData.m8CycleTime = hexArray[24];
+
+    Log.verbose(F("Status Response: %s" CR), msgToString(hexArray, length - 5).c_str());
     return true;
   }
   return false;

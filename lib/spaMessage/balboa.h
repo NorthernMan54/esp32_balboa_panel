@@ -82,8 +82,8 @@ struct SpaStatusData
 struct SpaConfigurationData
 {
   uint8_t crc;
-  unsigned long lastUpdate = 0;
-  unsigned long lastRequest = 0;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
   u_int32_t magicNumber;
 
   uint8_t pump1;

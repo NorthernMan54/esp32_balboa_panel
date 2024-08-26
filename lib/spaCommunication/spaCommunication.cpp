@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <ArduinoLog.h>
 #include <WiFi.h>
+#include <CircularBuffer.hpp>
 #include "../../src/utilities.h"
 #include "../../src/main.h"
 
@@ -11,6 +12,8 @@
 
 QueueHandle_t spaWriteQueue;
 QueueHandle_t spaReadQueue;
+
+CircularBuffer<uint8_t, BALBOA_MESSAGE_SIZE> Q_in;
 
 void spaCommunicationSetup()
 {
@@ -35,15 +38,30 @@ bool spaCommunicationLoop(IPAddress spaIP)
   }
   else if (client.available())
   {
-    spaReadQueueMessage messageToSend;
-    messageToSend.length = client.read(messageToSend.message, BALBOA_MESSAGE_SIZE);
-    if (xQueueSend(spaReadQueue, &messageToSend, 0) != pdTRUE)
+
+    u_int8_t x = client.read();
+    Q_in.push(x);
+
+    if (Q_in.first() != 0x7E)
+      Q_in.clear();
+
+    if (x == 0x7E && Q_in.size() > 4 && Q_in.size() == Q_in[1] + 2)
     {
-      Log.error(F("SPA Read Queue full, dropped %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
-    }
-    else
-    {
-      // Log.verbose(F("Data added to Read Queue %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+      spaReadQueueMessage messageToSend;
+      messageToSend.length = Q_in.size();
+      for (int i = 0; i < messageToSend.length; i++)
+      {
+        messageToSend.message[i] = Q_in[i];
+      }
+      Q_in.clear();
+      if (xQueueSend(spaReadQueue, &messageToSend, 0) != pdTRUE)
+      {
+        Log.error(F("SPA Read Queue full, dropped %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+      }
+      else
+      {
+        // Log.verbose(F("Data added to Read Queue %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+      }
     }
   }
   else if (uxQueueMessagesWaiting(spaWriteQueue) > 0)
