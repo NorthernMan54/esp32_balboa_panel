@@ -83,8 +83,6 @@ void setLastRestartReason(String reason)
 
 String getLastRestartReasonDescription()
 {
-  Log.verbose(F("[RestartReason]: Restart Reason Magic Number: %X" CR), restartReason.magicNumber);
-  Log.verbose(F("[RestartReason]: Restart Reason Description: %s" CR), restartReason.description);
   if (restartReason.magicNumber == RR_MAGIC_NUMBER)
   {
     restartReason.magicNumber = {0};

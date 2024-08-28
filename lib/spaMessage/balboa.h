@@ -37,7 +37,7 @@
 struct SpaStatusData
 {
   uint8_t crc;
-  unsigned long lastUpdate = 0;
+  unsigned long lastUpdate;
   u_int32_t magicNumber;
   uint8_t rawData[BALBOA_MESSAGE_SIZE];
   uint8_t rawDataLength;
@@ -109,9 +109,9 @@ struct SpaConfigurationData
 
 struct SpaFilterSettingsData
 {
-
-  unsigned long lastUpdate = 0;
-  unsigned long lastRequest = 0;
+  uint8_t crc;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
   u_int32_t magicNumber;
   uint8_t rawData[BALBOA_MESSAGE_SIZE];
   uint8_t rawDataLength;
@@ -129,6 +129,13 @@ struct SpaFilterSettingsData
 
 struct SpaFaultLogData
 {
+  uint8_t crc;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
+  u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
+
   uint8_t totEntry;
   uint8_t currEntry;
   uint8_t faultCode;
@@ -141,14 +148,14 @@ struct SpaFaultLogData
 struct SpaInformationData
 {
   uint8_t crc;
-  unsigned long lastUpdate = 0;
-  unsigned long lastRequest = 0;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
   u_int32_t magicNumber;
   uint8_t rawData[BALBOA_MESSAGE_SIZE];
   uint8_t rawDataLength;
 
-  char softwareID[9];
-  char model[9];
+  char softwareID[10];
+  char model[10];
   uint8_t setupNumber;
   uint8_t voltage;
   uint8_t heaterType;
@@ -158,8 +165,8 @@ struct SpaInformationData
 struct WiFiModuleConfigurationData
 {
   uint8_t crc;
-  unsigned long lastUpdate = 0;
-  unsigned long lastRequest = 0;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
   u_int32_t magicNumber;
 
   char macAddress[11];
@@ -168,8 +175,8 @@ struct WiFiModuleConfigurationData
 struct SpaSettings0x04Data
 {
   uint8_t crc;
-  unsigned long lastUpdate = 0;
-  unsigned long lastRequest = 0;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
   u_int32_t magicNumber;
   uint8_t rawData[BALBOA_MESSAGE_SIZE];
   uint8_t rawDataLength;
@@ -178,8 +185,8 @@ struct SpaSettings0x04Data
 struct SpaPreferencesData
 {
   uint8_t crc;
-  unsigned long lastUpdate = 0;
-  unsigned long lastRequest = 0;
+  unsigned long lastUpdate;
+  unsigned long lastRequest;
   u_int32_t magicNumber;
   uint8_t rawData[BALBOA_MESSAGE_SIZE];
   uint8_t rawDataLength;

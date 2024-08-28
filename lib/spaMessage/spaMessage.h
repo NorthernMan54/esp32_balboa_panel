@@ -10,6 +10,7 @@ extern RTC_NOINIT_ATTR SpaSettings0x04Data spaSettings0x04Data;
 extern RTC_NOINIT_ATTR SpaFilterSettingsData spaFilterSettingsData;
 extern RTC_NOINIT_ATTR SpaPreferencesData spaPreferencesData;
 extern RTC_NOINIT_ATTR WiFiModuleConfigurationData wiFiModuleConfigurationData;
+extern RTC_NOINIT_ATTR SpaFaultLogData spaFaultLogData;
 
 void spaMessageSetup();
 

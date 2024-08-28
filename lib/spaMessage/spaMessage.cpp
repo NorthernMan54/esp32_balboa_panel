@@ -17,6 +17,7 @@ RTC_NOINIT_ATTR SpaSettings0x04Data spaSettings0x04Data;
 RTC_NOINIT_ATTR SpaFilterSettingsData spaFilterSettingsData;
 RTC_NOINIT_ATTR SpaPreferencesData spaPreferencesData;
 RTC_NOINIT_ATTR WiFiModuleConfigurationData wiFiModuleConfigurationData;
+RTC_NOINIT_ATTR SpaFaultLogData spaFaultLogData;
 
 // private functions
 bool parseStatusMessage(u_int8_t *, int);
@@ -24,6 +25,8 @@ void parseInformationResponse(u_int8_t *, int);
 void parseConfigurationResponse(u_int8_t *, int);
 void parseWiFiModuleConfigurationResponse(u_int8_t *, int);
 void parsePreferencesResponse(u_int8_t *, int);
+void parseFaultResponse(u_int8_t *, int);
+void parseFilterResponse(u_int8_t *, int);
 void configurationRequest();
 
 void spaMessageSetup()
@@ -103,23 +106,29 @@ void spaMessageLoop()
         break;
       case Filter_Cycles_Type:
         Log.verbose(F("[Mess]: Filter Cycles Response: %s" CR), msgToString(message->message, message->length).c_str());
+        parseFilterResponse(message->message, message->length);
         break;
       case Information_Response_Type:
+        Log.verbose(F("[Mess]: Information Response: %s" CR), msgToString(message->message, message->length).c_str());
         parseInformationResponse(message->message, message->length);
         break;
       case Settings_0x04_Response_Type:
         Log.verbose(F("[Mess]: Settings 0x04 Response: %s" CR), msgToString(message->message, message->length).c_str());
         break;
       case Preferences_Type:
+        Log.verbose(F("[Mess]: Preferences Response: %s" CR), msgToString(message->message, message->length).c_str());
         parsePreferencesResponse(message->message, message->length);
         break;
       case Fault_Log_Type:
-        Log.verbose(F("[Mess]: Fault Log Response: %s" CR), msgToString(message->message, message->length).c_str());
+        Log.verbose(F("[Mess]: Fault_Log_Type Response: %s" CR), msgToString(message->message, message->length).c_str());
+        parseFaultResponse(message->message, message->length);
         break;
       case Configuration_Type:
+        Log.verbose(F("[Mess]: Configuration Response: %s" CR), msgToString(message->message, message->length).c_str());
         parseConfigurationResponse(message->message, message->length);
         break;
       case WiFi_Module_Configuration_Type:
+        Log.verbose(F("[Mess]: WiFi Module Configuration Response: %s" CR), msgToString(message->message, message->length).c_str());
         parseWiFiModuleConfigurationResponse(message->message, message->length);
         break;
       default:
@@ -352,6 +361,8 @@ Byte(s)	Name	Description/Values
 19-20	DIP Switch Settings	LSB-first (bit 0 of Byte 19 is position 1)
 */
 
+// 7e 1a 0a bf 24 64 c9 2c 00 53 52 42 50 35 30 31 58 03 09 57 fa 83 01 06 02 00 1f 7e 7e 20 ff af 13 00 00 ff 0c 1f 00 00 48 00 81 00 00 00 00 00 00 00 
+
 void parseInformationResponse(u_int8_t *message, int length)
 {
   spaInformationData.crc = message[message[1]];
@@ -477,4 +488,34 @@ bool parseStatusMessage(u_int8_t *message, int length)
     return true;
   }
   return false;
+}
+
+void parseFaultResponse(u_int8_t *message, int length)
+{
+  spaFaultLogData.crc = message[message[1]];
+  spaFaultLogData.lastUpdate = getTime();
+  for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+  {
+    spaFaultLogData.rawData[i] = message[i];
+  }
+  spaFaultLogData.rawDataLength = length;
+
+  u_int8_t *hexArray = message + 5;
+
+  Log.verbose(F("[Mess]: Fault Log Response: %s" CR), msgToString(hexArray, length - 7).c_str());
+}
+
+void parseFilterResponse(u_int8_t *message, int length)
+{
+  spaFilterSettingsData.crc = message[message[1]];
+  spaFilterSettingsData.lastUpdate = getTime();
+  for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+  {
+    spaFilterSettingsData.rawData[i] = message[i];
+  }
+  spaFilterSettingsData.rawDataLength = length;
+
+  u_int8_t *hexArray = message + 5;
+
+  Log.verbose(F("[Mess]: Filter Response: %s" CR), msgToString(hexArray, length - 7).c_str());
 }
