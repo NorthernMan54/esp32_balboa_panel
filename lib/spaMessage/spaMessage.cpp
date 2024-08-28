@@ -27,6 +27,7 @@ void parseWiFiModuleConfigurationResponse(u_int8_t *, int);
 void parsePreferencesResponse(u_int8_t *, int);
 void parseFaultResponse(u_int8_t *, int);
 void parseFilterResponse(u_int8_t *, int);
+void parseSettings0x04Response(u_int8_t *, int);
 void configurationRequest();
 
 void spaMessageSetup()
@@ -90,6 +91,8 @@ void spaMessageSetup()
   }
 }
 
+#define staleData(key) (key.lastUpdate == 0 && key.lastRequest == 0) || (key.lastUpdate + 60 * 60 < getTime() && key.lastRequest + 10 * 60 < getTime())
+
 void spaMessageLoop()
 {
   // Log.verbose(F("[Mess]: spaMessageLoop - %d" CR), uxQueueMessagesWaiting(spaReadQueue));
@@ -114,6 +117,7 @@ void spaMessageLoop()
         break;
       case Settings_0x04_Response_Type:
         Log.verbose(F("[Mess]: Settings 0x04 Response: %s" CR), msgToString(message->message, message->length).c_str());
+        parseSettings0x04Response(message->message, message->length);
         break;
       case Preferences_Type:
         Log.verbose(F("[Mess]: Preferences Response: %s" CR), msgToString(message->message, message->length).c_str());
@@ -140,7 +144,8 @@ void spaMessageLoop()
   }
   else
   {
-    if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest == 0)
+    // (spaInformationData.lastUpdate < getTime() + 60 * 60 && spaInformationData.lastRequest < getTime() + 60 * 60)
+    if (staleData(spaConfigurationData) || staleData(spaSettings0x04Data) || staleData(spaFilterSettingsData) || staleData(spaInformationData))
     {
       Log.verbose(F("[Mess]: Requesting Inital Configuration" CR));
       configurationRequest();
@@ -149,11 +154,6 @@ void spaMessageLoop()
     //  Log.verbose(F("[Mess]: No messages in Read Queue" CR));
   }
 }
-
-/*
-
-
-*/
 
 void configurationRequest()
 {
@@ -165,22 +165,22 @@ void configurationRequest()
   unsigned char filter_settings_request[] = FILTER_SETTINGS_REQUEST;
   unsigned char information_request[] = INFORMATION_REQUEST;
 
-  if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest == 0)
+  if (staleData(spaConfigurationData))
   {
     append_request(byte_array, &offset, config_request, sizeof(config_request));
     spaConfigurationData.lastRequest = getTime();
   }
-  if (spaSettings0x04Data.lastUpdate == 0 && spaSettings0x04Data.lastRequest == 0)
+  if (staleData(spaSettings0x04Data))
   {
     append_request(byte_array, &offset, settings_request, sizeof(settings_request));
     spaSettings0x04Data.lastRequest = getTime();
   }
-  if (spaFilterSettingsData.lastUpdate == 0 && spaFilterSettingsData.lastRequest == 0)
+  if (staleData(spaFilterSettingsData))
   {
     append_request(byte_array, &offset, filter_settings_request, sizeof(filter_settings_request));
     spaFilterSettingsData.lastRequest = getTime();
   }
-  if (spaInformationData.lastUpdate == 0 && spaInformationData.lastRequest == 0)
+  if (staleData(spaInformationData))
   {
     append_request(byte_array, &offset, information_request, sizeof(information_request));
     spaInformationData.lastRequest = getTime();
@@ -361,10 +361,11 @@ Byte(s)	Name	Description/Values
 19-20	DIP Switch Settings	LSB-first (bit 0 of Byte 19 is position 1)
 */
 
-// 7e 1a 0a bf 24 64 c9 2c 00 53 52 42 50 35 30 31 58 03 09 57 fa 83 01 06 02 00 1f 7e 7e 20 ff af 13 00 00 ff 0c 1f 00 00 48 00 81 00 00 00 00 00 00 00 
+// 7e 1a 0a bf 24 64 c9 2c 00 53 52 42 50 35 30 31 58 03 09 57 fa 83 01 06 02 00 1f 7e 7e 20 ff af 13 00 00 ff 0c 1f 00 00 48 00 81 00 00 00 00 00 00 00
 
 void parseInformationResponse(u_int8_t *message, int length)
 {
+
   spaInformationData.crc = message[message[1]];
   spaInformationData.lastUpdate = getTime();
   for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
@@ -374,11 +375,8 @@ void parseInformationResponse(u_int8_t *message, int length)
   spaInformationData.rawDataLength = length;
 
   u_int8_t *hexArray = message + 5;
-
   sprintf(spaInformationData.softwareID, "M%d_%d V%d.%d", hexArray[0], hexArray[1], hexArray[2], hexArray[3]);
-
-  sprintf(spaInformationData.model, "%s%s%s%s%s%s%s%s", hexArray[4], hexArray[5], hexArray[6], hexArray[7], hexArray[8], hexArray[9], hexArray[10], hexArray[11]);
-
+  sprintf(spaInformationData.model, "%c%c%c%c%c%c%c%c", hexArray[4], hexArray[5], hexArray[6], hexArray[7], hexArray[8], hexArray[9], hexArray[10], hexArray[11]);
   spaInformationData.setupNumber = hexArray[12];
   spaInformationData.voltage = hexArray[17];
   spaInformationData.heaterType = hexArray[18];
@@ -518,4 +516,19 @@ void parseFilterResponse(u_int8_t *message, int length)
   u_int8_t *hexArray = message + 5;
 
   Log.verbose(F("[Mess]: Filter Response: %s" CR), msgToString(hexArray, length - 7).c_str());
+}
+
+void parseSettings0x04Response(u_int8_t *message, int length)
+{
+  spaSettings0x04Data.crc = message[message[1]];
+  spaSettings0x04Data.lastUpdate = getTime();
+  for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+  {
+    spaSettings0x04Data.rawData[i] = message[i];
+  }
+  spaSettings0x04Data.rawDataLength = length;
+
+  u_int8_t *hexArray = message + 5;
+
+  Log.verbose(F("[Mess]: Settings 0x04 Response: %s" CR), msgToString(hexArray, length - 7).c_str());
 }

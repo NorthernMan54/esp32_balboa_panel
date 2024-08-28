@@ -296,6 +296,7 @@ void handleStatus(AsyncWebServerRequest *request)
   html += "<li>Free Stack: " + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
   html += "<li>Uptime: " + formatNumberWithCommas(millis() / 1000) + "</li>";
   html += "<li>Time: " + formatNumberWithCommas(getTime()) + "</li>";
+  html += "<li>Refresh Time: " + formatNumberWithCommas(getTime() + 60 * 60) + "</li>";
 
   html += "</ul><h1>Spa Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaStatusData.lastUpdate) + "</li>";
@@ -320,11 +321,17 @@ void handleStatus(AsyncWebServerRequest *request)
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaInformationData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaInformationData.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaInformationData.magicNumber) + "</li>";
+  html += "<li>refresh needed: " + String(spaInformationData.lastUpdate + 60 * 60 < getTime() && spaInformationData.lastRequest + 10 * 60 < getTime()) + "</li>";
 
   html += "</ul><h1>Fault Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaFaultLogData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaFaultLogData.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaInformationData.magicNumber) + "</li>";
+
+  html += "</ul><h1>spaSettings0x04Data Status</h1><ul>";
+  html += "<li>lastUpdate: " + formatNumberWithCommas(spaSettings0x04Data.lastUpdate) + "</li>";
+  html += "<li>lastRequest: " + formatNumberWithCommas(spaSettings0x04Data.lastRequest) + "</li>";
+  html += "<li>magicNumber: " + String(spaSettings0x04Data.magicNumber) + "</li>";
 
   html += "</ul></body></html>";
 
