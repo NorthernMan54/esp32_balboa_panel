@@ -2,8 +2,8 @@
 
 #include <ESPAsyncWebServer.h>
 #include <ArduinoLog.h>
+#include <TinyXML.h>
 #include <base64.hpp>
-#include <tinyxml2.h>
 
 // Internal libraries
 
@@ -175,8 +175,17 @@ String parseBody(String body)
   }
   else if (body.indexOf("Buttons") > 0)
   {
+    /*
+    TinyXMLDocument doc;
+    doc.Parse(body);
+    const char *deviceRequestValue = doc.FirstChildElement("sci_request")
+                                         ->FirstChildElement("data_service")
+                                         ->FirstChildElement("requests")
+                                         ->FirstChildElement("device_request")
+                                         ->GetText();
+    */
     Log.verbose("[Web]: Button requested %s" CR, body.c_str());
-    response = encodeResponse(spaFilterSettingsData.rawData, spaFilterSettingsData.rawDataLength);
+    // response = encodeResponse(spaFilterSettingsData.rawData, spaFilterSettingsData.rawDataLength);
   }
   else
   {
@@ -207,7 +216,7 @@ void handleData(AsyncWebServerRequest *request)
       return;
     }
     // Log.verbose("[Web]: handleData response %s" CR, response.c_str());
-    Log.verbose("[Web]: handleData response %s %s received from %p response %s " CR, request->methodToString(), request->url().c_str(), request->client()->remoteIP(), response.c_str());
+    Log.verbose("[Web]: handleData %p %s %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str(), response.c_str());
     request->send(200, "text/xml", "<response><data>" + response + "</data></response>");
   }
   else
@@ -219,22 +228,7 @@ void handleData(AsyncWebServerRequest *request)
 
 void handleOptionsData(AsyncWebServerRequest *request)
 {
-  Log.verbose("[Web]: handleOptionsData Request %s %s received from %p" CR, request->methodToString(), request->url().c_str(), request->client()->remoteIP());
-  /*
-  int headers = request->headers();
-  int i;
-  for (i = 0; i < headers; i++)
-  {
-    AsyncWebHeader *h = request->getHeader(i);
-    Log.verbose("HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
-  }
-  int args = request->args();
-  for (int i = 0; i < args; i++)
-  {
-    Log.verbose("ARG[%s]: %s" CR, request->argName(i).c_str(), request->arg(i).c_str());
-  }
-  */
-  // Log.verbose("[Web]: handleData _tempObject %s " CR, request->_tempObject);
+  Log.verbose("[Web]: handleOptionsData %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
   request->send(200, "text/plain", "Data received");
 }
 
@@ -260,7 +254,7 @@ void handleNotFound(AsyncWebServerRequest *request)
 
 void handleConfig(AsyncWebServerRequest *request)
 {
-  Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
+  // Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
 
   String html = "<html><body><h1>Spa Configuration</h1><ul>";
   if (spaConfigurationData.lastUpdate == 0)
@@ -290,12 +284,13 @@ void handleConfig(AsyncWebServerRequest *request)
     html += "</ul></body></html>";
   }
   request->send(200, "text/html", html);
-  Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
+  // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
+  Log.verbose("[Web]: handleConfig %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
 }
 
 void handleStatus(AsyncWebServerRequest *request)
 {
-  Log.verbose(F("[Web]: handleStatus()" CR));
+  // Log.verbose(F("[Web]: handleStatus()" CR));
   String html = "<html><body><h1>ESP Status</h1><ul>";
   html += "<li>Free Heap: " + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
   html += "<li>Free Stack: " + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
@@ -334,5 +329,7 @@ void handleStatus(AsyncWebServerRequest *request)
   html += "</ul></body></html>";
 
   request->send(200, "text/html", html);
-  Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
+  Log.verbose("[Web]: handleStatus %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
+
+  // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
 }
