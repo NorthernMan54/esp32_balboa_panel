@@ -2,7 +2,7 @@
 
 #include <ESPAsyncWebServer.h>
 #include <ArduinoLog.h>
-#include <TinyXML.h>
+#include <tinyxml2.h>
 #include <base64.hpp>
 
 // Internal libraries
@@ -119,12 +119,6 @@ String encodeResponse(uint8_t rawData[BALBOA_MESSAGE_SIZE], uint8_t length)
   }
 }
 
-// <sci_request version="1.0"><file_system><targets><device id="00 11 22 33 44 55 66 77"/></targets><commands><get_file path="PanelUpdate.txt"/></commands></file_system></sci_request>
-// <sci_request version="1.0"><file_system><targets><device id="00 11 22 33 44 55 66 77"/></targets><commands><get_file path="SystemInformation.txt"/></commands></file_system></sci_request>
-// <sci_request version="1.0"><file_system cache="false"><targets><device id="00 11 22 33 44 55 66 77" /></targets><commands><get_file path="SetupParameters.txt" /></commands></file_system></sci_request>
-
-// <sci_request version="1.0"><data_service><targets><device id="00 11 22 33 44 55 66 77"/></targets><requests><device_request target_name="Request">Filters</device_request></requests></data_service></sci_request>
-
 void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
 {
   // Log.verbose("[Web]: handleBody Request %s %s %d received from %p" CR, request->methodToString(), request->url().c_str(), index, request->client()->remoteIP());
@@ -150,6 +144,8 @@ void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_
 
 // <sci_request version="1.0"><data_service><targets><device id="00 11 22 33 44 55 66 77"/></targets><requests><device_request target_name="Request">Filters</device_request></requests></data_service></sci_request>
 
+// <sci_request version="1.0"><data_service><targets><device id="00 11 22 33 44 55 66 77"/></targets><requests><device_request target_name="TempUnits">F</device_request></requests></data_service></sci_request>
+
 String parseBody(String body)
 {
   String response = "";
@@ -173,18 +169,22 @@ String parseBody(String body)
   {
     response = encodeResponse(spaFilterSettingsData.rawData, spaFilterSettingsData.rawDataLength);
   }
-  else if (body.indexOf("Buttons") > 0)
+  else if (body.indexOf("device_request") > 0)
   {
-    /*
-    TinyXMLDocument doc;
-    doc.Parse(body);
-    const char *deviceRequestValue = doc.FirstChildElement("sci_request")
-                                         ->FirstChildElement("data_service")
-                                         ->FirstChildElement("requests")
-                                         ->FirstChildElement("device_request")
-                                         ->GetText();
-    */
-    Log.verbose("[Web]: Button requested %s" CR, body.c_str());
+    using namespace tinyxml2;
+    XMLDocument xmlDocument;
+    xmlDocument.Parse(body.c_str());
+    tinyxml2::XMLElement* deviceRequestElement = xmlDocument.FirstChildElement("sci_request")
+                                           ->FirstChildElement("data_service")
+                                           ->FirstChildElement("requests")
+                                           ->FirstChildElement("device_request");
+
+    const char *targetName = deviceRequestElement->Attribute("target_name");
+
+    // Get the value inside the <device_request> element
+    const char *deviceRequestValue = deviceRequestElement->GetText();
+
+    Log.verbose("[Web]: Button requested %s %s" CR, targetName, deviceRequestValue);
     // response = encodeResponse(spaFilterSettingsData.rawData, spaFilterSettingsData.rawDataLength);
   }
   else
