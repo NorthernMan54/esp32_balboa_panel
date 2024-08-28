@@ -47,10 +47,6 @@ void spaMessageSetup()
     spaConfigurationData.magicNumber = MAGIC_NUMBER;
   }
 
-  Log.verbose(F("[Mess]: spaConfigurationData.lastUpdate: %d" CR), spaConfigurationData.lastUpdate);
-  Log.verbose(F("[Mess]: spaConfigurationData.lastRequest: %d" CR), spaConfigurationData.lastRequest);
-  Log.verbose(F("[Mess]: spaConfigurationData.pump1: %d" CR), spaConfigurationData.pump1);
-
   if (spaInformationData.magicNumber != MAGIC_NUMBER)
   {
     Log.verbose(F("[Mess]: spaInformationData.magicNumber: %x" CR), spaInformationData.magicNumber);
@@ -89,9 +85,31 @@ void spaMessageSetup()
     wiFiModuleConfigurationData = {};
     wiFiModuleConfigurationData.magicNumber = MAGIC_NUMBER;
   }
+  if (staleData(spaFilterSettingsData))
+  {
+    Log.verbose(F("[Mess]: Stale Filter Settings" CR));
+  }
+  if (staleData(spaFaultLogData))
+  {
+    Log.verbose(F("[Mess]: Stale Fault Log" CR));
+  }
+  if (staleData(spaInformationData))
+  {
+    Log.verbose(F("[Mess]: Stale Information" CR));
+  }
+  if (staleData(spaSettings0x04Data))
+  {
+    Log.verbose(F("[Mess]: Stale Settings 0x04" CR));
+  }
+  if (staleData(spaConfigurationData))
+  {
+    Log.verbose(F("[Mess]: Stale Configuration" CR));
+  }
+  if (staleData(spaPreferencesData))
+  {
+    Log.verbose(F("[Mess]: Stale Preferences" CR));
+  }
 }
-
-#define staleData(key) (key.lastUpdate == 0 && key.lastRequest == 0) || (key.lastUpdate + 60 * 60 < getTime() && key.lastRequest + 10 * 60 < getTime())
 
 void spaMessageLoop()
 {
@@ -147,9 +165,9 @@ void spaMessageLoop()
     // (spaInformationData.lastUpdate < getTime() + 60 * 60 && spaInformationData.lastRequest < getTime() + 60 * 60)
     if (staleData(spaConfigurationData) || staleData(spaSettings0x04Data) || staleData(spaFilterSettingsData) || staleData(spaInformationData))
     {
-      Log.verbose(F("[Mess]: Requesting Inital Configuration" CR));
+      // Log.verbose(F("[Mess]: Requesting Inital Configuration" CR));
       configurationRequest();
-      Log.verbose(F("[Mess]: Requested Inital Configuration" CR));
+      // Log.verbose(F("[Mess]: Requested Inital Configuration" CR));
     }
     //  Log.verbose(F("[Mess]: No messages in Read Queue" CR));
   }
@@ -165,17 +183,17 @@ void configurationRequest()
   unsigned char filter_settings_request[] = FILTER_SETTINGS_REQUEST;
   unsigned char information_request[] = INFORMATION_REQUEST;
 
-  if (staleData(spaConfigurationData))
+  if (staleData(spaConfigurationData) && retryRequest(spaConfigurationData))
   {
     append_request(byte_array, &offset, config_request, sizeof(config_request));
     spaConfigurationData.lastRequest = getTime();
   }
-  if (staleData(spaSettings0x04Data))
+  if (staleData(spaSettings0x04Data) && retryRequest(spaSettings0x04Data))
   {
     append_request(byte_array, &offset, settings_request, sizeof(settings_request));
     spaSettings0x04Data.lastRequest = getTime();
   }
-  if (staleData(spaFilterSettingsData))
+  if (staleData(spaFilterSettingsData) && retryRequest(spaFilterSettingsData))
   {
     append_request(byte_array, &offset, filter_settings_request, sizeof(filter_settings_request));
     spaFilterSettingsData.lastRequest = getTime();
@@ -185,16 +203,20 @@ void configurationRequest()
     append_request(byte_array, &offset, information_request, sizeof(information_request));
     spaInformationData.lastRequest = getTime();
   }
-  SpaWriteQueueMessage *messageToSend = new SpaWriteQueueMessage;
-  messageToSend->length = offset;
-  memcpy(messageToSend->message, byte_array, offset);
-  if (xQueueSend(spaWriteQueue, &messageToSend, 0) != pdTRUE)
+
+  if (offset)
   {
-    Log.error(F("[Mess]: SPA Write Queue full, dropped %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
-  }
-  else
-  {
-    Log.verbose(F("[Mess]: Queuing request to spa %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
+    SpaWriteQueueMessage *messageToSend = new SpaWriteQueueMessage;
+    messageToSend->length = offset;
+    memcpy(messageToSend->message, byte_array, offset);
+    if (xQueueSend(spaWriteQueue, &messageToSend, 0) != pdTRUE)
+    {
+      Log.error(F("[Mess]: SPA Write Queue full, dropped %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
+    }
+    else
+    {
+      Log.verbose(F("[Mess]: Queuing request to spa %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
+    }
   }
 }
 

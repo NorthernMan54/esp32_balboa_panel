@@ -306,32 +306,43 @@ void handleStatus(AsyncWebServerRequest *request)
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaConfigurationData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaConfigurationData.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaConfigurationData.magicNumber) + "</li>";
+  html += "<li>staleData: " + String(staleData(spaConfigurationData)) + "</li>";
+  html += "<li>retryRequest: " + String(retryRequest(spaConfigurationData)) + "</li>";
 
   html += "</ul><h1>Preferences Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaPreferencesData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaPreferencesData.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaPreferencesData.magicNumber) + "</li>";
+  html += "<li>staleData: " + String(staleData(spaPreferencesData)) + "</li>";
+  html += "<li>retryRequest: " + String(retryRequest(spaPreferencesData)) + "</li>";
 
   html += "</ul><h1>Filters Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaFilterSettingsData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaFilterSettingsData.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaFilterSettingsData.magicNumber) + "</li>";
+  html += "<li>staleData: " + String(staleData(spaFilterSettingsData)) + "</li>";
+  html += "<li>retryRequest: " + String(retryRequest(spaFilterSettingsData)) + "</li>";
 
   html += "</ul><h1>Information Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaInformationData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaInformationData.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaInformationData.magicNumber) + "</li>";
-  html += "<li>refresh needed: " + String(spaInformationData.lastUpdate + 60 * 60 < getTime() && spaInformationData.lastRequest + 10 * 60 < getTime()) + "</li>";
+  html += "<li>staleData: " + String(staleData(spaInformationData)) + "</li>";
+  html += "<li>retryRequest: " + String(retryRequest(spaInformationData)) + "</li>";
 
   html += "</ul><h1>Fault Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaFaultLogData.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaFaultLogData.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaInformationData.magicNumber) + "</li>";
+  html += "<li>magicNumber: " + String(spaFaultLogData.magicNumber) + "</li>";
+  html += "<li>staleData: " + String(staleData(spaFaultLogData)) + "</li>";
+  html += "<li>retryRequest: " + String(retryRequest(spaFaultLogData)) + "</li>";
 
   html += "</ul><h1>spaSettings0x04Data Status</h1><ul>";
   html += "<li>lastUpdate: " + formatNumberWithCommas(spaSettings0x04Data.lastUpdate) + "</li>";
   html += "<li>lastRequest: " + formatNumberWithCommas(spaSettings0x04Data.lastRequest) + "</li>";
   html += "<li>magicNumber: " + String(spaSettings0x04Data.magicNumber) + "</li>";
+  html += "<li>staleData: " + String(staleData(spaSettings0x04Data)) + "</li>";
+  html += "<li>retryRequest: " + String(retryRequest(spaSettings0x04Data)) + "</li>";
 
   html += "</ul></body></html>";
 

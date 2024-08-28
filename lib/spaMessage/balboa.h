@@ -5,6 +5,9 @@
 
 // Message Types
 
+#define staleData(key) (key.lastUpdate == 0 || key.lastUpdate + 60 * 60 < getTime())
+#define retryRequest(key) (key.lastRequest == 0 || key.lastRequest + 10 * 60 < getTime())
+
 #define New_Client_Clear_to_Send_Type 0x00
 #define Channel_Assignment_Request_Type 0x01
 #define Channel_Assignment_Response_Type 0x02
