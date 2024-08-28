@@ -4,6 +4,7 @@
 #include <ArduinoOTA.h>
 #include <ArduinoLog.h>
 #include <esp_task_wdt.h>
+#include <spaCommunication.h>
 
 #include <time.h>
 #include "../restartReason/restartReason.h"
@@ -103,6 +104,7 @@ void otaSetup()
 void notifyOfUpdateStarted()
 {
   Log.notice(F("[WiFi]: Arduino OTA Update Start" CR));
+  spaCommunicationEnd();
 }
 
 void notifyOfUpdateEnded()

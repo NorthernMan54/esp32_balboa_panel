@@ -3,6 +3,9 @@
 #include <ArduinoLog.h>
 #include <WiFi.h>
 #include <CircularBuffer.hpp>
+#include <AsyncTCP.h>
+#include <esp_task_wdt.h>
+
 #include "../../src/utilities.h"
 #include "../../src/main.h"
 
@@ -17,61 +20,88 @@ CircularBuffer<uint8_t, BALBOA_MESSAGE_SIZE> Q_in;
 
 void spaCommunicationSetup()
 {
-  Log.verbose(F("spaCommunicationSetup()" CR));
-  spaWriteQueue = xQueueCreate(SPA_WRITE_QUEUE, sizeof(spaWriteQueueMessage_t));
-  spaReadQueue = xQueueCreate(SPA_READ_QUEUE, sizeof(spaReadQueueMessage_t));
+  Log.verbose(F("[Comm]: spaCommunicationSetup()" CR));
+  spaWriteQueue = xQueueCreate(SPA_WRITE_QUEUE, sizeof(struct SpaWriteQueueMessage *));
+  spaReadQueue = xQueueCreate(SPA_READ_QUEUE, sizeof(struct SpaReadQueueMessage *));
 };
 
 // SPA Communication State's
 
-WiFiClient client;
+AsyncClient client;
+
+void dataAvailable(void *r, AsyncClient *c, void *buf, size_t len)
+{
+  // Log.verbose(F("[Comm]: Data Available %x, %d" CR), String((char *)buf).substring(0, len).c_str(), len);
+
+  SpaReadQueueMessage *messageToSend = new SpaReadQueueMessage;
+  messageToSend->length = (len < BALBOA_MESSAGE_SIZE ? len : BALBOA_MESSAGE_SIZE);
+  for (int i = 0; i < messageToSend->length; i++)
+  {
+    messageToSend->message[i] = *((uint8_t *)buf + i);
+  }
+
+  if (xQueueSend(spaReadQueue, &messageToSend, 0) != pdTRUE)
+  {
+    Log.error(F("[Comm]: SPA Read Queue full, dropped %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
+  }
+  else
+  {
+    // Log.verbose(F("[Comm]: Data added to Read Queue [%d]%s" CR),messageToSend->length, msgToString(messageToSend->message, messageToSend->length).c_str());
+  }
+}
+
+unsigned long lastConnectTime = 0;
 
 bool spaCommunicationLoop(IPAddress spaIP)
 {
-  if (!client.connected())
+  if (!client.connected() && lastConnectTime < millis())
   {
-    Log.verbose(F("Connecting to Spa %p" CR), spaIP);
-    if (client.connect(spaIP, BALBOA_PORT))
-    {
-      Log.verbose(F("Connected to Spa %p" CR), spaIP);
-    }
+    Log.verbose(F("[Comm]: Connecting to Spa %p" CR), spaIP);
+    client.connect(spaIP, BALBOA_PORT);
+    lastConnectTime = millis() + 5000;
+
+    esp_task_wdt_init(RUNNING_WDT_TIMEOUT, true);
+    client.onData(dataAvailable);
+    client.onDisconnect([](void *r, AsyncClient *c)
+                        { Log.verbose(F("[Comm]: Disconnected from Spa" CR)); });
+    client.onConnect([](void *r, AsyncClient *c)
+                     { Log.verbose(F("[Comm]: Connected to Spa %p" CR), c->remoteIP()); });
+    client.onTimeout([](void *r, AsyncClient *c, uint32_t time)
+                     { Log.verbose(F("[Comm]: Timeout from Spa" CR)); });
+    client.onError([](void *r, AsyncClient *c, int8_t error)
+                   { Log.verbose(F("[Comm]: Error from Spa %d" CR), error); });
+    yield();
   }
-  else if (client.available())
+  else if (client.connected() && uxQueueMessagesWaiting(spaWriteQueue) > 0)
   {
-
-    u_int8_t x = client.read();
-    Q_in.push(x);
-
-    if (Q_in.first() != 0x7E)
-      Q_in.clear();
-
-    if (x == 0x7E && Q_in.size() > 4 && Q_in.size() == Q_in[1] + 2)
-    {
-      spaReadQueueMessage messageToSend;
-      messageToSend.length = Q_in.size();
-      for (int i = 0; i < messageToSend.length; i++)
-      {
-        messageToSend.message[i] = Q_in[i];
-      }
-      Q_in.clear();
-      if (xQueueSend(spaReadQueue, &messageToSend, 0) != pdTRUE)
-      {
-        Log.error(F("SPA Read Queue full, dropped %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
-      }
-      else
-      {
-        // Log.verbose(F("Data added to Read Queue %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
-      }
-    }
-  }
-  else if (uxQueueMessagesWaiting(spaWriteQueue) > 0)
-  {
-    spaWriteQueueMessage messageToSend;
+    SpaWriteQueueMessage *messageToSend;
     if (xQueueReceive(spaWriteQueue, &messageToSend, 0) == pdTRUE)
     {
-      Log.verbose(F("Sending data to Spa %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
-      client.write(messageToSend.message, messageToSend.length);
+      Log.verbose(F("[Comm]: Sending data to Spa %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
+      client.add(reinterpret_cast<const char *>(messageToSend->message), messageToSend->length);
+      client.send();
+      // client.write(messageToSend.message, messageToSend.length);
     }
+    delete messageToSend;
   }
-  return client.connected();
+  else
+  {
+    // Log.verbose(F("[Comm]: No messages in Write Queue, and client not connected. %d" CR), client.connected());
+  }
+
+  // lastConnectTime is 5000,  millis is 4000 - return true
+  // lastConnectTime is 5000,  millis is 6000 - return client.connected()
+  // lastConnectTime is 0,  millis is 6000 - return client.connected()
+
+  return (lastConnectTime > millis() ? true : client.connected());
+};
+
+void spaCommunicationEnd()
+{
+  Log.verbose(F("[Comm]: spaCommunicationEnd()" CR));
+  if (client.connected())
+  {
+    client.close(true);
+    client.free();
+  }
 };

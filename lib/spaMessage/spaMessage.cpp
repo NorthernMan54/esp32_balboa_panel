@@ -3,6 +3,7 @@
 #include "../../src/utilities.h"
 #include "../../src/main.h"
 #include "balboa.h"
+#include <esp_task_wdt.h>
 
 #define TwoBit(value, bit) (((value) >> (bit)) & 0x03)
 
@@ -30,25 +31,25 @@ void spaMessageSetup()
   // put your setup code here, to run once:
   if (spaStatusData.magicNumber != MAGIC_NUMBER)
   {
-    Log.verbose(F("spaStatusData.magicNumber: %x" CR), spaStatusData.magicNumber);
+    Log.verbose(F("[Mess]: spaStatusData.magicNumber: %x" CR), spaStatusData.magicNumber);
     spaStatusData = {};
     spaStatusData.magicNumber = MAGIC_NUMBER;
   }
 
   if (spaConfigurationData.magicNumber != MAGIC_NUMBER)
   {
-    Log.verbose(F("spaConfigurationData.magicNumber: %x" CR), spaConfigurationData.magicNumber);
+    Log.verbose(F("[Mess]: spaConfigurationData.magicNumber: %x" CR), spaConfigurationData.magicNumber);
     spaConfigurationData = {};
     spaConfigurationData.magicNumber = MAGIC_NUMBER;
   }
 
-  Log.verbose(F("spaConfigurationData.lastUpdate: %d" CR), spaConfigurationData.lastUpdate);
-  Log.verbose(F("spaConfigurationData.lastRequest: %d" CR), spaConfigurationData.lastRequest);
-  Log.verbose(F("spaConfigurationData.pump1: %d" CR), spaConfigurationData.pump1);
+  Log.verbose(F("[Mess]: spaConfigurationData.lastUpdate: %d" CR), spaConfigurationData.lastUpdate);
+  Log.verbose(F("[Mess]: spaConfigurationData.lastRequest: %d" CR), spaConfigurationData.lastRequest);
+  Log.verbose(F("[Mess]: spaConfigurationData.pump1: %d" CR), spaConfigurationData.pump1);
 
   if (spaInformationData.magicNumber != MAGIC_NUMBER)
   {
-    Log.verbose(F("spaInformationData.magicNumber: %x" CR), spaInformationData.magicNumber);
+    Log.verbose(F("[Mess]: spaInformationData.magicNumber: %x" CR), spaInformationData.magicNumber);
 
     spaInformationData = {};
     spaInformationData.magicNumber = MAGIC_NUMBER;
@@ -56,7 +57,7 @@ void spaMessageSetup()
 
   if (spaSettings0x04Data.magicNumber != MAGIC_NUMBER)
   {
-    Log.verbose(F("spaSettings0x04Data.magicNumber: %x" CR), spaSettings0x04Data.magicNumber);
+    Log.verbose(F("[Mess]: spaSettings0x04Data.magicNumber: %x" CR), spaSettings0x04Data.magicNumber);
 
     spaSettings0x04Data = {};
     spaSettings0x04Data.magicNumber = MAGIC_NUMBER;
@@ -64,13 +65,15 @@ void spaMessageSetup()
 
   if (spaFilterSettingsData.magicNumber != MAGIC_NUMBER)
   {
+    Log.verbose(F("[Mess]: spaFilterSettingsData.magicNumber: %x" CR), spaFilterSettingsData.magicNumber);
+
     spaFilterSettingsData = {};
     spaFilterSettingsData.magicNumber = MAGIC_NUMBER;
   }
 
   if (spaPreferencesData.magicNumber != MAGIC_NUMBER)
   {
-    Log.verbose(F("spaPreferencesData.magicNumber: %x" CR), spaPreferencesData.magicNumber);
+    Log.verbose(F("[Mess]: spaPreferencesData.magicNumber: %x" CR), spaPreferencesData.magicNumber);
 
     spaPreferencesData = {};
     spaPreferencesData.magicNumber = MAGIC_NUMBER;
@@ -78,6 +81,7 @@ void spaMessageSetup()
 
   if (wiFiModuleConfigurationData.magicNumber != MAGIC_NUMBER)
   {
+    Log.verbose(F("[Mess]: wiFiModuleConfigurationData.magicNumber: %x" CR), wiFiModuleConfigurationData.magicNumber);
     wiFiModuleConfigurationData = {};
     wiFiModuleConfigurationData.magicNumber = MAGIC_NUMBER;
   }
@@ -85,50 +89,55 @@ void spaMessageSetup()
 
 void spaMessageLoop()
 {
+  // Log.verbose(F("[Mess]: spaMessageLoop - %d" CR), uxQueueMessagesWaiting(spaReadQueue));
   if (uxQueueMessagesWaiting(spaReadQueue) > 0)
   {
-    spaReadQueueMessage message;
+    SpaReadQueueMessage *message;
     if (xQueueReceive(spaReadQueue, &message, 0) == pdTRUE)
     {
-      switch (message.message[4])
+      // Log.verbose(F("[Mess]: Queue Message Received: [%d]%s" CR), message->length, msgToString(message->message, message->length).c_str());
+      switch (message->message[4])
       {
       case Status_Message_Type:
-        parseStatusMessage(message.message, message.length);
+        parseStatusMessage(message->message, message->length);
         break;
       case Filter_Cycles_Type:
-        Log.verbose(F("Filter Cycles Response: %s" CR), msgToString(message.message, message.length).c_str());
+        Log.verbose(F("[Mess]: Filter Cycles Response: %s" CR), msgToString(message->message, message->length).c_str());
         break;
       case Information_Response_Type:
-        parseInformationResponse(message.message, message.length);
+        parseInformationResponse(message->message, message->length);
         break;
       case Settings_0x04_Response_Type:
-        Log.verbose(F("Settings 0x04 Response: %s" CR), msgToString(message.message, message.length).c_str());
+        Log.verbose(F("[Mess]: Settings 0x04 Response: %s" CR), msgToString(message->message, message->length).c_str());
         break;
       case Preferences_Type:
-        parsePreferencesResponse(message.message, message.length);
+        parsePreferencesResponse(message->message, message->length);
         break;
       case Fault_Log_Type:
-        Log.verbose(F("Fault Log Response: %s" CR), msgToString(message.message, message.length).c_str());
+        Log.verbose(F("[Mess]: Fault Log Response: %s" CR), msgToString(message->message, message->length).c_str());
         break;
       case Configuration_Type:
-        parseConfigurationResponse(message.message, message.length);
+        parseConfigurationResponse(message->message, message->length);
         break;
       case WiFi_Module_Configuration_Type:
-        parseWiFiModuleConfigurationResponse(message.message, message.length);
+        parseWiFiModuleConfigurationResponse(message->message, message->length);
         break;
       default:
-        Log.verbose(F("Unknown Message Type: %x - %s" CR), message.message[4], msgToString(message.message, message.length).c_str());
+        Log.verbose(F("[Mess]: Unknown Message Type: %x - %s" CR), message->message[4], msgToString(message->message, message->length).c_str());
       }
     }
+    delete message;
+    esp_task_wdt_reset();
   }
   else
   {
     if (spaConfigurationData.lastUpdate == 0 && spaConfigurationData.lastRequest == 0)
     {
-      Log.verbose(F("Requesting Inital Configuration" CR));
+      Log.verbose(F("[Mess]: Requesting Inital Configuration" CR));
       configurationRequest();
+      Log.verbose(F("[Mess]: Requested Inital Configuration" CR));
     }
-    //  Log.verbose(F("No messages in Read Queue" CR));
+    //  Log.verbose(F("[Mess]: No messages in Read Queue" CR));
   }
 }
 
@@ -139,7 +148,7 @@ void spaMessageLoop()
 
 void configurationRequest()
 {
-  unsigned char byte_array[50];
+  unsigned char byte_array[100] = {0};
   int offset = 0;
 
   unsigned char config_request[] = CONFIGURATION_REQUEST;
@@ -167,17 +176,16 @@ void configurationRequest()
     append_request(byte_array, &offset, information_request, sizeof(information_request));
     spaInformationData.lastRequest = getTime();
   }
-
-  spaWriteQueueMessage messageToSend;
-  messageToSend.length = offset;
-  memcpy(messageToSend.message, byte_array, offset);
+  SpaWriteQueueMessage *messageToSend = new SpaWriteQueueMessage;
+  messageToSend->length = offset;
+  memcpy(messageToSend->message, byte_array, offset);
   if (xQueueSend(spaWriteQueue, &messageToSend, 0) != pdTRUE)
   {
-    Log.error(F("SPA Write Queue full, dropped %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+    Log.error(F("[Mess]: SPA Write Queue full, dropped %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
   }
   else
   {
-    Log.verbose(F("Data added to Write Queue %s" CR), msgToString(messageToSend.message, messageToSend.length).c_str());
+    Log.verbose(F("[Mess]: Queuing request to spa %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
   }
 }
 
@@ -212,6 +220,11 @@ void parsePreferencesResponse(u_int8_t *message, int length)
 {
   spaPreferencesData.crc = message[message[1]];
   spaPreferencesData.lastUpdate = getTime();
+  spaPreferencesData.rawDataLength = length;
+  for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+  {
+    spaPreferencesData.rawData[i] = message[i];
+  }
 
   u_int8_t *hexArray = message + 5;
 
@@ -222,7 +235,7 @@ void parsePreferencesResponse(u_int8_t *message, int length)
   spaPreferencesData.dolphinAddress = hexArray[6];
   spaPreferencesData.m8AI = hexArray[8];
 
-  Log.verbose(F("Preferences Response: %s" CR), msgToString(hexArray, length - 5).c_str());
+  Log.verbose(F("[Mess]: Preferences Response: %s" CR), msgToString(hexArray, length - 7).c_str());
 }
 
 /*
@@ -256,7 +269,7 @@ void parseWiFiModuleConfigurationResponse(u_int8_t *message, int length)
 
   sprintf(wiFiModuleConfigurationData.macAddress, "%02x:%02x:%02x:%02x:%02x:%02x", hexArray[3], hexArray[4], hexArray[5], hexArray[6], hexArray[7], hexArray[8]);
 
-  Log.verbose(F("WiFi Module Configuration Response: %s" CR), msgToString(hexArray, length - 5).c_str());
+  Log.verbose(F("[Mess]: WiFi Module Configuration Response: %s" CR), msgToString(hexArray, length - 7).c_str());
 }
 
 /*
@@ -288,6 +301,12 @@ void parseConfigurationResponse(u_int8_t *message, int length)
   spaConfigurationData.crc = message[message[1]];
   spaConfigurationData.lastUpdate = getTime();
 
+  for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+  {
+    spaConfigurationData.rawData[i] = message[i];
+  }
+  spaConfigurationData.rawDataLength = length;
+
   u_int8_t *hexArray = message + 5;
 
   spaConfigurationData.pump1 = TwoBit(hexArray[0], 0);
@@ -308,7 +327,7 @@ void parseConfigurationResponse(u_int8_t *message, int length)
   spaConfigurationData.aux2 = bitRead(hexArray[4], 1);
   spaConfigurationData.mister = TwoBit(hexArray[4], 4);
 
-  Log.verbose(F("Configuration Response: %s" CR), msgToString(hexArray, length - 5).c_str());
+  Log.verbose(F("[Mess]: Configuration Response: %s" CR), msgToString(hexArray, length - 7).c_str());
 }
 
 /*
@@ -337,6 +356,11 @@ void parseInformationResponse(u_int8_t *message, int length)
 {
   spaInformationData.crc = message[message[1]];
   spaInformationData.lastUpdate = getTime();
+  for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+  {
+    spaInformationData.rawData[i] = message[i];
+  }
+  spaInformationData.rawDataLength = length;
 
   u_int8_t *hexArray = message + 5;
 
@@ -349,7 +373,7 @@ void parseInformationResponse(u_int8_t *message, int length)
   spaInformationData.heaterType = hexArray[18];
   sprintf(spaInformationData.dipSwitch, "%x%x", hexArray[20], hexArray[19]);
 
-  Log.verbose(F("Information Response: %s" CR), msgToString(hexArray, length - 5).c_str());
+  Log.verbose(F("[Mess]: Information Response: %s" CR), msgToString(hexArray, length - 7).c_str());
 }
 
 /*
@@ -386,9 +410,14 @@ bool parseStatusMessage(u_int8_t *message, int length)
 
   if (spaStatusData.crc != message[message[1]])
   {
-
+    spaStatusData.rawData[0] = message[0];
     spaStatusData.crc = message[message[1]];
     spaStatusData.lastUpdate = getTime();
+    for (int i = 0; i < length && i < BALBOA_MESSAGE_SIZE; i++)
+    {
+      spaStatusData.rawData[i] = message[i];
+    }
+    spaStatusData.rawDataLength = length;
 
     u_int8_t *hexArray = message + 5;
     spaStatusData.spaState = hexArray[0];
@@ -444,7 +473,7 @@ bool parseStatusMessage(u_int8_t *message, int length)
     spaStatusData.settingsLock = bitRead(hexArray[21], 3);
     spaStatusData.m8CycleTime = hexArray[24];
 
-    Log.verbose(F("Status Response: %s" CR), msgToString(hexArray, length - 5).c_str());
+    Log.verbose(F("[Mess]: Status Response: %s" CR), msgToString(hexArray, length - 7).c_str());
     return true;
   }
   return false;

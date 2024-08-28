@@ -1,6 +1,7 @@
 #ifndef BALBOA_H
 #define BALBOA_H
 #include <Arduino.h>
+#include "../../src/main.h"
 
 // Message Types
 
@@ -38,6 +39,8 @@ struct SpaStatusData
   uint8_t crc;
   unsigned long lastUpdate = 0;
   u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
 
   uint8_t spaState;
   uint8_t initMode;
@@ -85,6 +88,8 @@ struct SpaConfigurationData
   unsigned long lastUpdate;
   unsigned long lastRequest;
   u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
 
   uint8_t pump1;
   uint8_t pump2;
@@ -108,6 +113,8 @@ struct SpaFilterSettingsData
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
   u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
 
   uint8_t filt1Hour;
   uint8_t filt1Minute;
@@ -137,6 +144,8 @@ struct SpaInformationData
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
   u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
 
   char softwareID[9];
   char model[9];
@@ -162,6 +171,8 @@ struct SpaSettings0x04Data
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
   u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
 };
 
 struct SpaPreferencesData
@@ -170,6 +181,8 @@ struct SpaPreferencesData
   unsigned long lastUpdate = 0;
   unsigned long lastRequest = 0;
   u_int32_t magicNumber;
+  uint8_t rawData[BALBOA_MESSAGE_SIZE];
+  uint8_t rawDataLength;
 
   uint8_t reminders;
   uint8_t tempScale;

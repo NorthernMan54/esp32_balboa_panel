@@ -9,5 +9,8 @@ unsigned long uptime();
 unsigned long getTime();
 String msgToString(uint8_t *data, uint8_t len);
 void append_request(unsigned char *byte_array, int *offset, unsigned char *request, int request_size);
+String formatNumberWithCommas(unsigned long num);
+String formatNumberWithCommas(uint32_t num);
+void printPrefix(Print *_logOutput, int logLevel);
 
 #endif

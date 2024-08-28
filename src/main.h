@@ -14,9 +14,12 @@
 #define BUILD (String(__DATE__) + " - " + String(__TIME__)).c_str()
 
 #define INITIAL_WDT_TIMEOUT 300 // Reset ESP32 if wifi is not connected within 5 minutes
-#define RUNNING_WDT_TIMEOUT 60 // Reset ESP32 if no SPA messages are received for 60 seconds
+#define RUNNING_WDT_TIMEOUT 60  // Reset ESP32 if no SPA messages are received for 60 seconds
 
-#define logSection(section) Log.setShowLevel(false);Log.notice(F(CR "************* " section " **************" CR));Log.setShowLevel(true);
+#define logSection(section)                                                  \
+  Log.setShowLevel(false);                                                   \
+  Log.notice(F("************* " section " **************" CR)); \
+  Log.setShowLevel(true);
 
 // Global Message Queues
 
@@ -25,16 +28,16 @@
 extern QueueHandle_t spaWriteQueue;
 extern QueueHandle_t spaReadQueue;
 
-extern struct spaReadQueueMessage
+struct SpaReadQueueMessage
 {
   u_int8_t message[BALBOA_MESSAGE_SIZE];
   int length;
-} spaReadQueueMessage_t;
+};
 
-extern struct spaWriteQueueMessage
+struct SpaWriteQueueMessage
 {
   u_int8_t message[BALBOA_MESSAGE_SIZE];
   int length;
-} spaWriteQueueMessage_t;
+};
 
 #endif

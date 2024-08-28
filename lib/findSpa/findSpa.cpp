@@ -58,7 +58,7 @@ bool findSpaLoop()
       const char *message = "Discovery: This is the panel, Who is out there?";
       udp.write((const uint8_t *)message, strlen(message));
       udp.endPacket();
-      Log.verbose(F("[UDP]: sent discovery message %s" CR), message);
+      Log.verbose(F("[findSpa]: sent discovery message %s" CR), message);
       lastDiscoveryBroadcast = uptime();
       initialSend = true;
     }
@@ -68,12 +68,15 @@ bool findSpaLoop()
     {
       // receive incoming UDP packets
       udp.read(packetBuffer, 255);
-      Log.verbose(F("[UDP]: Available Spa Connection %p %d" CR), udp.remoteIP(), udp.remotePort());
-      Log.verbose(F("[UDP]: Spa Reply '%s'" CR), packetBuffer);
+      Log.verbose(F("[findSpa]: Available Spa Connection %p %d" CR), udp.remoteIP(), udp.remotePort());
+      String message = String(packetBuffer);
+      message.replace("\r", "\\r");
+      message.replace("\n", "\\n");
+      Log.verbose(F("[findSpa]: Spa Reply '%s'" CR), message.c_str());
       if (spaIPCount < 10 && !spaAlreadyDiscovered(udp.remoteIP()))
       {
         spaIP[spaIPCount] = udp.remoteIP();
-        Log.notice(F("[UDP]: Added Spa %p" CR), spaIP[spaIPCount]);
+        Log.notice(F("[findSpa]: Added Spa %p" CR), spaIP[spaIPCount]);
         spaIPCount++;
       }
     }

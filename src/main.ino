@@ -10,6 +10,7 @@
 #include <spaCommunication.h>
 #include <spaMessage.h>
 #include <spaWebServer.h>
+#include "utilities.h"
 
 #include "main.h"
 
@@ -17,6 +18,7 @@ void setup()
 {
   // Launch serial for debugging purposes
   Serial.begin(SERIAL_BAUD);
+  Log.setPrefix(printPrefix);
   Log.begin(LOG_LEVEL, &Serial);
   esp_task_wdt_init(INITIAL_WDT_TIMEOUT, true); // enable panic so ESP32 restarts
   esp_task_wdt_add(NULL);                       // add current thread to WDT watch
@@ -55,14 +57,11 @@ void loop()
     {
       if (!spaCommunicationLoop(getSpaIP()))
       {
+        Log.verbose(F("[Main]: spaCommunicationLoop failed, client disconnected" CR));
         resetSpaCount();
       }
-      else
-      {
-        spaMessageLoop();
-        spaWebServerLoop();
-        esp_task_wdt_reset();
-      }
+      spaMessageLoop();
+      spaWebServerLoop();
     }
   }
 }

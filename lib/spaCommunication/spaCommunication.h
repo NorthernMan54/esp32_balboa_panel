@@ -4,5 +4,6 @@
 
 void spaCommunicationSetup();
 bool spaCommunicationLoop(IPAddress);
+void spaCommunicationEnd();
 
 #endif
