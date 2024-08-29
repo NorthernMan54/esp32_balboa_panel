@@ -2,8 +2,16 @@
 
 #include <ESPAsyncWebServer.h>
 #include <ArduinoLog.h>
+#include <WiFi.h>
+#include <AsyncJson.h>
+#include <ArduinoJson.h>
+
 #include <tinyxml2.h>
 #include <base64.hpp>
+
+#include "FS.h"
+#include <LittleFS.h>
+#define FORMAT_LITTLEFS_IF_FAILED true
 
 // Internal libraries
 
@@ -14,18 +22,31 @@
 
 void handleConfig(AsyncWebServerRequest *request);
 void handleStatus(AsyncWebServerRequest *request);
-void handleRoot(AsyncWebServerRequest *request);
+void handleState(AsyncWebServerRequest *request);
+void handleSlash(AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest *request);
 void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
 void handleData(AsyncWebServerRequest *request);
+void handleLoginData(AsyncWebServerRequest *request);
 void handleOptionsData(AsyncWebServerRequest *request);
+void handleOptionsLoginData(AsyncWebServerRequest *request);
 String parseBody(String body);
+void listDir(fs::FS &fs, const char *dirname, uint8_t levels);
 
 AsyncWebServer server(80);
 bool serverSetup = false;
 
 void spaWebServerSetup()
 {
+  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
+  {
+    Log.error("[Web]: Error LittleFS Mount Failed");
+  }
+  else
+  {
+    Log.notice("[Web]: LittleFS Mounted" CR);
+    listDir(LittleFS, "/", 3);
+  }
   // put your setup code here, to run once:
   Log.verbose(F("[Web]: spaWebServerSetup()" CR));
 }
@@ -34,11 +55,18 @@ void spaWebServerLoop()
 {
   if (!serverSetup)
   {
-    server.on("/", HTTP_GET, handleRoot);
+    server.on("/", HTTP_GET, handleSlash);
+    server.on("/state", HTTP_GET, handleState);
     server.on("/config", HTTP_GET, handleConfig);
     server.on("/status", HTTP_GET, handleStatus);
-    server.on("/data", HTTP_OPTIONS, handleOptionsData);
-    server.on("/data", HTTP_POST, handleData, NULL, handleBody);
+
+    // Balboa cloud emulation
+
+    server.on("/devices/sci", HTTP_OPTIONS, handleOptionsData);
+    server.on("/devices/sci", HTTP_POST, handleData, NULL, handleBody);
+
+    server.on("/users/login", HTTP_OPTIONS, handleOptionsLoginData);
+    server.on("/users/login", HTTP_POST, handleLoginData, NULL, handleBody);
 
     server.onNotFound(handleNotFound);
 
@@ -54,7 +82,7 @@ void spaWebServerLoop()
   // Log.verbose(F("[Web]: spaWebServerLoop()" CR));
 }
 
-void handleRoot(AsyncWebServerRequest *request)
+void handleState(AsyncWebServerRequest *request)
 {
   Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
   String html = "<html><body><h1>Spa Status</h1><ul>";
@@ -167,17 +195,18 @@ String parseBody(String body)
   }
   else if (body.indexOf("Filters") > 0)
   {
-    response = encodeResponse(spaFilterSettingsData.rawData, spaFilterSettingsData.rawDataLength);
+    //<device_request target_name="Filters">${encodedValue}</device_request>
+    response = "<device_request target_name='Filters'>" + encodeResponse(spaFilterSettingsData.rawData, spaFilterSettingsData.rawDataLength) + "</device_request>";
   }
   else if (body.indexOf("device_request") > 0)
   {
     using namespace tinyxml2;
     XMLDocument xmlDocument;
     xmlDocument.Parse(body.c_str());
-    tinyxml2::XMLElement* deviceRequestElement = xmlDocument.FirstChildElement("sci_request")
-                                           ->FirstChildElement("data_service")
-                                           ->FirstChildElement("requests")
-                                           ->FirstChildElement("device_request");
+    tinyxml2::XMLElement *deviceRequestElement = xmlDocument.FirstChildElement("sci_request")
+                                                     ->FirstChildElement("data_service")
+                                                     ->FirstChildElement("requests")
+                                                     ->FirstChildElement("device_request");
 
     const char *targetName = deviceRequestElement->Attribute("target_name");
 
@@ -226,14 +255,71 @@ void handleData(AsyncWebServerRequest *request)
   }
 }
 
+void handleLoginData(AsyncWebServerRequest *request)
+{
+  // Log.verbose("[Web]: handleData Request %s %s received from %p" CR, request->methodToString(), request->url().c_str(), request->client()->remoteIP());
+
+  if (request->_tempObject != nullptr)
+  {
+    // Log.verbose("[Web]: handleData _tempObject %s" CR, request->_tempObject);
+    String body = String((char *)request->_tempObject);
+    // Log.verbose("[Web]: handleData 1" CR);
+    free(request->_tempObject);
+    // Log.verbose("[Web]: handleData 2" CR);
+    request->_tempObject = nullptr;
+    // Log.verbose("[Web]: handleData body %s" CR, body.c_str());
+
+    // data.device.device_id
+    // data.token
+
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    DynamicJsonDocument doc(128);
+
+    doc["username"] = WiFi.getHostname();
+    doc["token"] = WiFi.macAddress();
+    doc["device"]["device_id"] = WiFi.macAddress();
+
+    serializeJsonPretty(doc, *response);
+    request->send(response);
+
+    Log.verbose("[Web]: handleData %p %s %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str(), response);
+  }
+  else
+  {
+    Log.verbose("[Web]: handleData no body" CR);
+    request->send(200, "text/xml", "<noresponse></noresponse>");
+  }
+}
+
 void handleOptionsData(AsyncWebServerRequest *request)
 {
   Log.verbose("[Web]: handleOptionsData %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
   request->send(200, "text/plain", "Data received");
 }
 
+void handleOptionsLoginData(AsyncWebServerRequest *request)
+{
+  Log.verbose("[Web]: handleOptionsLoginData %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
+  request->send(200, "text/plain", "Data received");
+}
+
+void handleSlash(AsyncWebServerRequest *request)
+{
+  Log.verbose("[Web]: handleSlash %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
+  AsyncWebServerResponse *response = request->beginResponse(302); //Sends 302 Weiterleitung
+response->addHeader("Location", "index.html");
+request->send(response);
+}
+
 void handleNotFound(AsyncWebServerRequest *request)
 {
+  if (LittleFS.exists(request->url()))
+  {
+    Log.verbose("[Web]: LFS %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
+    request->send(LittleFS, request->url(), String(), false);
+    return;
+  }
+
   Log.verbose(F("[Web]: handleNotFound() %s %s" CR), request->methodToString(), request->url().c_str());
   int headers = request->headers();
   int i;
@@ -350,4 +436,44 @@ void handleStatus(AsyncWebServerRequest *request)
   Log.verbose("[Web]: handleStatus %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
 
   // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
+}
+
+void listDir(fs::FS &fs, const char *dirname, uint8_t levels)
+{
+  File root = fs.open(dirname);
+  if (!root)
+  {
+    Serial.println("- failed to open directory");
+    return;
+  }
+  if (!root.isDirectory())
+  {
+    Serial.println(" - not a directory");
+    return;
+  }
+
+  File file = root.openNextFile();
+  while (file)
+  {
+    if (file.isDirectory())
+    {
+      if (levels)
+      {
+        listDir(fs, file.path(), levels - 1);
+      }
+    }
+    else
+    {
+      Serial.print("  FILE: ");
+      Serial.print(dirname);
+      if (strcmp(dirname, "/") != 0)
+      {
+        Serial.print("/");
+      }
+      Serial.print(file.name());
+      Serial.print("\tSIZE: ");
+      Serial.println(file.size());
+    }
+    file = root.openNextFile();
+  }
 }
