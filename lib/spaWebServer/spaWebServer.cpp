@@ -82,16 +82,20 @@ void spaWebServerLoop()
   // Log.verbose(F("[Web]: spaWebServerLoop()" CR));
 }
 
-#define style String("<style>body{font-family:Arial,Helvetica,sans-serif;}h1{color:blue;}ul{list-style-type:none;}li{padding:5px;}button{  border: none;  color: white; padding: 15px 32px;  text-align: center;  text-decoration: none;  display: inline-block;  font-size: 16px;  margin: 4px 2px;  cursor: pointer;background-color: #04AA6D;}</style>")
+#define style String("<style>body{font-family:Arial,Helvetica,sans-serif;}h1{color:blue;}ul{list-style-type:none;}li{padding:5px;}button{  border: none;  color: white; padding: 15px 32px;  text-align: center;  text-decoration: none;  display: inline-block;  font-size: 16px;  margin: 4px 2px;  cursor: pointer;background-color: #04AA6D;} .active, .btn:hover { background-color: #666;  color: white;}</style>")
 
 #define head String("<head><title>Spa Web Server State</title>") + style + String("</head>")
 
-#define webMenu String("<form><button formaction='/status'>SPA Status</button><button formaction='/config'>SPA Config</button><button formaction='/state'>ESP State</button><button formaction='/index.html'>SPA Website</button></form>")
+#define webMenuStatus String("<form><button class='active' formaction='/status'>SPA Status</button><button formaction='/config'>SPA Config</button><button formaction='/state'>ESP State</button><button formaction='/index.html'>SPA Website</button></form>")
+
+#define webMenuConfig String("<form><button formaction='/status'>SPA Status</button><button class='active' formaction='/config'>SPA Config</button><button formaction='/state'>ESP State</button><button formaction='/index.html'>SPA Website</button></form>")
+
+#define webMenuState String("<form><button formaction='/status'>SPA Status</button><button formaction='/config'>SPA Config</button><button class='active' formaction='/state'>ESP State</button><button formaction='/index.html'>SPA Website</button></form>")
 
 void handleStatus(AsyncWebServerRequest *request)
 {
   Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
-  String html = "<html>" + head + "<body>" + webMenu + "<h1>Spa Status</h1><ul>";
+  String html = "<html>" + head + "<body>" + webMenuStatus + "<h1>Spa Status</h1><ul>";
   html += "<li><b>lastUpdate:</b> " + formatNumberWithCommas(spaStatusData.lastUpdate) + "</li>";
   html += "<li><b>magicNumber: </b>" + String(spaStatusData.magicNumber) + "</li>";
   html += "<br><li><b>Free Heap: </b>" + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
@@ -133,7 +137,7 @@ void handleConfig(AsyncWebServerRequest *request)
 {
   // Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
 
-  String html = "<html>" + head + "<body>" + webMenu + "<h1>Spa Configuration</h1><ul>";
+  String html = "<html>" + head + "<body>" + webMenuConfig + "<h1>Spa Configuration</h1><ul>";
   if (spaConfigurationData.lastUpdate == 0)
   {
     html += "<li><b>Spa Configuration not available</b></li>";
@@ -168,7 +172,7 @@ void handleConfig(AsyncWebServerRequest *request)
 void handleState(AsyncWebServerRequest *request)
 {
   // Log.verbose(F("[Web]: handleStatus()" CR));
-  String html = "<html>" + head + "<body>" + webMenu + "<h1>ESP State</h1><ul>";
+  String html = "<html>" + head + "<body>" + webMenuState + "<h1>ESP State</h1><ul>";
   html += "<li><b>Free Heap: </b>" + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
   html += "<li><b>Free Stack: </b>" + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
   html += "<li><b>Uptime: </b>" + formatNumberWithCommas(millis() / 1000) + "</li>";
