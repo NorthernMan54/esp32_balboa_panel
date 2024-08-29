@@ -3,8 +3,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoLog.h>
 #include <WiFi.h>
-#include <AsyncJson.h>
 #include <ArduinoJson.h>
+#include <AsyncJson.h>
 
 #include <tinyxml2.h>
 #include <base64.hpp>
@@ -55,7 +55,7 @@ void spaWebServerLoop()
 {
   if (!serverSetup)
   {
-    server.on("/", HTTP_GET, handleSlash);
+    server.on("/", HTTP_GET, handleState);
     server.on("/state", HTTP_GET, handleState);
     server.on("/config", HTTP_GET, handleConfig);
     server.on("/status", HTTP_GET, handleStatus);
@@ -82,42 +82,158 @@ void spaWebServerLoop()
   // Log.verbose(F("[Web]: spaWebServerLoop()" CR));
 }
 
-void handleState(AsyncWebServerRequest *request)
+#define style String("<style>body{font-family:Arial,Helvetica,sans-serif;}h1{color:blue;}ul{list-style-type:none;}li{padding:5px;}button{  border: none;  color: white; padding: 15px 32px;  text-align: center;  text-decoration: none;  display: inline-block;  font-size: 16px;  margin: 4px 2px;  cursor: pointer;background-color: #04AA6D;}</style>")
+
+#define head String("<head><title>Spa Web Server State</title>") + style + String("</head>")
+
+#define webMenu String("<form><button formaction='/status'>SPA Status</button><button formaction='/config'>SPA Config</button><button formaction='/state'>ESP State</button><button formaction='/index.html'>SPA Website</button></form>")
+
+void handleStatus(AsyncWebServerRequest *request)
 {
   Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
-  String html = "<html><body><h1>Spa Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaStatusData.lastUpdate) + "</li>";
-  html += "<li>magicNumber: " + String(spaStatusData.magicNumber) + "</li>";
-  html += "<br><li>Free Heap: " + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
-  html += "<li>Free Stack: " + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
+  String html = "<html>" + head + "<body>" + webMenu + "<h1>Spa Status</h1><ul>";
+  html += "<li><b>lastUpdate:</b> " + formatNumberWithCommas(spaStatusData.lastUpdate) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaStatusData.magicNumber) + "</li>";
+  html += "<br><li><b>Free Heap: </b>" + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
+  html += "<li><b>Free Stack: </b>" + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
 
-  html += "<br><li>Current Temp: " + String(spaStatusData.currentTemp) + "°C</li>";
-  html += "<li>Set Temp: " + String(spaStatusData.setTemp) + "°C</li>";
-  html += "<li>Heating Mode: " + String(spaStatusData.heatingMode) + "</li>";
-  html += "<li>Heating State: " + String(spaStatusData.heatingState) + "</li>";
-  html += "<li>Needs Heat: " + String(spaStatusData.needsHeat) + "</li>";
-  html += "<li>Temp Range: " + String(spaStatusData.tempRange) + "</li>";
-  html += "<li>Temp Scale: " + String(spaStatusData.tempScale) + "</li>";
-  html += "<li>Time: " + String(spaStatusData.time) + "</li>";
-  html += "<li>Clock Mode: " + String(spaStatusData.clockMode) + "</li>";
-  html += "<li>Filter Mode: " + String(spaStatusData.filterMode) + "</li>";
-  html += "<li>Pump 1: " + String(spaStatusData.pump1) + "</li>";
-  html += "<li>Pump 2: " + String(spaStatusData.pump2) + "</li>";
-  html += "<li>Pump 3: " + String(spaStatusData.pump3) + "</li>";
-  html += "<li>Pump 4: " + String(spaStatusData.pump4) + "</li>";
-  html += "<li>Pump 5: " + String(spaStatusData.pump5) + "</li>";
-  html += "<li>Pump 6: " + String(spaStatusData.pump6) + "</li>";
-  html += "<li>Circulation Pump: " + String(spaStatusData.circ) + "</li>";
-  html += "<li>Blower: " + String(spaStatusData.blower) + "</li>";
-  html += "<li>Light 1: " + String(spaStatusData.light1) + "</li>";
-  html += "<li>Light 2: " + String(spaStatusData.light2) + "</li>";
-  html += "<li>Mister: " + String(spaStatusData.mister) + "</li>";
-  html += "<li>Panel Locked: " + String(spaStatusData.panelLocked) + "</li>";
-  // Add more fields as needed
+  html += "<br><li><b>Current Temp: </b>" + String(spaStatusData.currentTemp) + "°C</li>";
+  html += "<li><b>Set Temp: </b>" + String(spaStatusData.setTemp) + "°C</li>";
+  html += "<li><b>Heating Mode: </b>" + String(spaStatusData.heatingMode) + "</li>";
+  html += "<li><b>Heating State: </b>" + String(spaStatusData.heatingState) + "</li>";
+  html += "<li><b>Needs Heat: </b>" + String(spaStatusData.needsHeat) + "</li>";
+  html += "<li><b>Temp Range: </b>" + String(spaStatusData.tempRange) + "</li>";
+  html += "<li><b>Temp Scale: </b>" + String(spaStatusData.tempScale) + "</li>";
+  html += "<li><b>Time: </b>" + String(spaStatusData.time) + "</li>";
+  html += "<li><b>Clock Mode: </b>" + String(spaStatusData.clockMode) + "</li>";
+  html += "<li><b>Filter Mode: </b>" + String(spaStatusData.filterMode) + "</li>";
+  html += "<li><b>Pump 1: </b>" + String(spaStatusData.pump1) + "</li>";
+  html += "<li><b>Pump 2: </b>" + String(spaStatusData.pump2) + "</li>";
+  html += "<li><b>Pump 3: </b>" + String(spaStatusData.pump3) + "</li>";
+  html += "<li><b>Pump 4: </b>" + String(spaStatusData.pump4) + "</li>";
+  html += "<li><b>Pump 5: </b>" + String(spaStatusData.pump5) + "</li>";
+  html += "<li><b>Pump 6: </b>" + String(spaStatusData.pump6) + "</li>";
+  html += "<li><b>Circulation Pump: </b>" + String(spaStatusData.circ) + "</li>";
+  html += "<li><b>Blower: </b>" + String(spaStatusData.blower) + "</li>";
+  html += "<li><b>Light 1: </b>" + String(spaStatusData.light1) + "</li>";
+  html += "<li><b>Light 2: </b>" + String(spaStatusData.light2) + "</li>";
+  html += "<li><b>Mister: </b>" + String(spaStatusData.mister) + "</li>";
+  html += "<li><b>Panel Locked: </b>" + String(spaStatusData.panelLocked) + "</li>";
+  html += "<li><b>Settings Lock: </b>" + String(spaStatusData.settingsLock) + "</li>";
+  html += "<li><b>M8 Cycle Time: </b>" + String(spaStatusData.m8CycleTime) + "</li>";
+  html += "<li><b>Notification: </b>" + String(spaStatusData.notification) + "</li>";
+  html += "<li><b>Flags 19: </b>" + String(spaStatusData.flags19) + "</li>";
   html += "</ul></body></html>";
+  // Add more fields as needed
   request->send(200, "text/html", html);
   Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
 }
+
+void handleConfig(AsyncWebServerRequest *request)
+{
+  // Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
+
+  String html = "<html>" + head + "<body>" + webMenu + "<h1>Spa Configuration</h1><ul>";
+  if (spaConfigurationData.lastUpdate == 0)
+  {
+    html += "<li><b>Spa Configuration not available</b></li>";
+  }
+  else
+  {
+    html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaConfigurationData.lastUpdate) + "</li>";
+    html += "<li><b>magicNumber: </b>" + String(spaConfigurationData.magicNumber) + "</li>";
+    html += "<li><b>Pump 1: </b>" + String(spaConfigurationData.pump1) + "</li>";
+    html += "<li><b>Pump 2: </b>" + String(spaConfigurationData.pump2) + "</li>";
+    html += "<li><b>Pump 3: </b>" + String(spaConfigurationData.pump3) + "</li>";
+    html += "<li><b>Pump 4: </b>" + String(spaConfigurationData.pump4) + "</li>";
+    html += "<li><b>Pump 5: </b>" + String(spaConfigurationData.pump5) + "</li>";
+    html += "<li><b>Pump 6: </b>" + String(spaConfigurationData.pump6) + "</li>";
+    html += "<li><b>Light 1: </b>" + String(spaConfigurationData.light1) + "</li>";
+    html += "<li><b>Light 2: </b>" + String(spaConfigurationData.light2) + "</li>";
+    html += "<li><b>Blower: </b>" + String(spaConfigurationData.blower) + "</li>";
+    html += "<li><b>Circulation Pump: </b>" + String(spaConfigurationData.circulationPump) + "</li>";
+    html += "<li><b>Aux 1: </b>" + String(spaConfigurationData.aux1) + "</li>";
+    html += "<li><b>Aux 2: </b>" + String(spaConfigurationData.aux2) + "</li>";
+    html += "<li><b>Mister: </b>" + String(spaConfigurationData.mister) + "</li>";
+    html += "<li><b>temp_scale: </b>" + String(spaConfigurationData.temp_scale) + "</li>";
+
+    // Add more fields as needed
+    html += "</ul></body></html>";
+  }
+  request->send(200, "text/html", html);
+  // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
+  Log.verbose("[Web]: handleConfig %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
+}
+
+void handleState(AsyncWebServerRequest *request)
+{
+  // Log.verbose(F("[Web]: handleStatus()" CR));
+  String html = "<html>" + head + "<body>" + webMenu + "<h1>ESP State</h1><ul>";
+  html += "<li><b>Free Heap: </b>" + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
+  html += "<li><b>Free Stack: </b>" + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
+  html += "<li><b>Uptime: </b>" + formatNumberWithCommas(millis() / 1000) + "</li>";
+  html += "<li><b>Time: </b>" + formatNumberWithCommas(getTime()) + "</li>";
+  html += "<li><b>Refresh Time: </b>" + formatNumberWithCommas(getTime() + 60 * 60) + "</li>";
+
+  html += "</ul><h1>Spa Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaStatusData.lastUpdate) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaStatusData.magicNumber) + "</li>";
+
+  html += "</ul><h1>Configuration Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaConfigurationData.lastUpdate) + "</li>";
+  html += "<li><b>lastRequest: </b>" + formatNumberWithCommas(spaConfigurationData.lastRequest) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaConfigurationData.magicNumber) + "</li>";
+  html += "<li><b>staleData: </b>" + String(staleData(spaConfigurationData)) + "</li>";
+  html += "<li><b>retryRequest: </b>" + String(retryRequest(spaConfigurationData)) + "</li>";
+
+  html += "</ul><h1>Preferences Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaPreferencesData.lastUpdate) + "</li>";
+  html += "<li><b>lastRequest: </b>" + formatNumberWithCommas(spaPreferencesData.lastRequest) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaPreferencesData.magicNumber) + "</li>";
+  html += "<li><b>staleData: </b>" + String(staleData(spaPreferencesData)) + "</li>";
+  html += "<li><b>retryRequest: </b>" + String(retryRequest(spaPreferencesData)) + "</li>";
+
+  html += "</ul><h1>Filters Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaFilterSettingsData.lastUpdate) + "</li>";
+  html += "<li><b>lastRequest: </b>" + formatNumberWithCommas(spaFilterSettingsData.lastRequest) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaFilterSettingsData.magicNumber) + "</li>";
+  html += "<li><b>staleData: </b>" + String(staleData(spaFilterSettingsData)) + "</li>";
+  html += "<li><b>retryRequest: </b>" + String(retryRequest(spaFilterSettingsData)) + "</li>";
+
+  html += "</ul><h1>Information Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaInformationData.lastUpdate) + "</li>";
+  html += "<li><b>lastRequest: </b>" + formatNumberWithCommas(spaInformationData.lastRequest) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaInformationData.magicNumber) + "</li>";
+  html += "<li><b>staleData: </b>" + String(staleData(spaInformationData)) + "</li>";
+  html += "<li><b>retryRequest: </b>" + String(retryRequest(spaInformationData)) + "</li>";
+
+  html += "</ul><h1>Fault Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaFaultLogData.lastUpdate) + "</li>";
+  html += "<li><b>lastRequest: </b>" + formatNumberWithCommas(spaFaultLogData.lastRequest) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaFaultLogData.magicNumber) + "</li>";
+  html += "<li><b>staleData: </b>" + String(staleData(spaFaultLogData)) + "</li>";
+  html += "<li><b>retryRequest: </b>" + String(retryRequest(spaFaultLogData)) + "</li>";
+
+  html += "</ul><h1>spaSettings0x04Data Status</h1><ul>";
+  html += "<li><b>lastUpdate: </b>" + formatNumberWithCommas(spaSettings0x04Data.lastUpdate) + "</li>";
+  html += "<li><b>lastRequest: </b>" + formatNumberWithCommas(spaSettings0x04Data.lastRequest) + "</li>";
+  html += "<li><b>magicNumber: </b>" + String(spaSettings0x04Data.magicNumber) + "</li>";
+  html += "<li><b>staleData: </b>" + String(staleData(spaSettings0x04Data)) + "</li>";
+  html += "<li><b>retryRequest: </b>" + String(retryRequest(spaSettings0x04Data)) + "</li>";
+
+  html += "</ul></body></html>";
+
+  request->send(200, "text/html", html);
+  Log.verbose("[Web]: handleStatus %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
+
+  // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
+}
+
+/*
+
+This is the balboa cloud emulation
+
+*/
 
 String encodeResponse(uint8_t rawData[BALBOA_MESSAGE_SIZE], uint8_t length)
 {
@@ -306,9 +422,9 @@ void handleOptionsLoginData(AsyncWebServerRequest *request)
 void handleSlash(AsyncWebServerRequest *request)
 {
   Log.verbose("[Web]: handleSlash %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
-  AsyncWebServerResponse *response = request->beginResponse(302); //Sends 302 Weiterleitung
-response->addHeader("Location", "index.html");
-request->send(response);
+  AsyncWebServerResponse *response = request->beginResponse(302); // Sends 302 Weiterleitung
+  response->addHeader("Location", "index.html");
+  request->send(response);
 }
 
 void handleNotFound(AsyncWebServerRequest *request)
@@ -336,106 +452,6 @@ void handleNotFound(AsyncWebServerRequest *request)
   }
 
   request->send(404, "text/plain", "Not found");
-}
-
-void handleConfig(AsyncWebServerRequest *request)
-{
-  // Log.verbose("[Web]: Request %s received from %p" CR, request->url().c_str(), request->client()->remoteIP());
-
-  String html = "<html><body><h1>Spa Configuration</h1><ul>";
-  if (spaConfigurationData.lastUpdate == 0)
-  {
-    html += "<li>Spa Configuration not available</li>";
-  }
-  else
-  {
-    html += "<li>lastUpdate: " + formatNumberWithCommas(spaConfigurationData.lastUpdate) + "</li>";
-    html += "<li>magicNumber: " + String(spaConfigurationData.magicNumber) + "</li>";
-    html += "<li>Pump 1: " + String(spaConfigurationData.pump1) + "</li>";
-    html += "<li>Pump 2: " + String(spaConfigurationData.pump2) + "</li>";
-    html += "<li>Pump 3: " + String(spaConfigurationData.pump3) + "</li>";
-    html += "<li>Pump 4: " + String(spaConfigurationData.pump4) + "</li>";
-    html += "<li>Pump 5: " + String(spaConfigurationData.pump5) + "</li>";
-    html += "<li>Pump 6: " + String(spaConfigurationData.pump6) + "</li>";
-    html += "<li>Light 1: " + String(spaConfigurationData.light1) + "</li>";
-    html += "<li>Light 2: " + String(spaConfigurationData.light2) + "</li>";
-    html += "<li>Blower: " + String(spaConfigurationData.blower) + "</li>";
-    html += "<li>Circulation Pump: " + String(spaConfigurationData.circulationPump) + "</li>";
-    html += "<li>Aux 1: " + String(spaConfigurationData.aux1) + "</li>";
-    html += "<li>Aux 2: " + String(spaConfigurationData.aux2) + "</li>";
-    html += "<li>Mister: " + String(spaConfigurationData.mister) + "</li>";
-    html += "<li>temp_scale: " + String(spaConfigurationData.temp_scale) + "</li>";
-
-    // Add more fields as needed
-    html += "</ul></body></html>";
-  }
-  request->send(200, "text/html", html);
-  // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
-  Log.verbose("[Web]: handleConfig %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
-}
-
-void handleStatus(AsyncWebServerRequest *request)
-{
-  // Log.verbose(F("[Web]: handleStatus()" CR));
-  String html = "<html><body><h1>ESP Status</h1><ul>";
-  html += "<li>Free Heap: " + formatNumberWithCommas(ESP.getFreeHeap()) + "</li>";
-  html += "<li>Free Stack: " + formatNumberWithCommas(uxTaskGetStackHighWaterMark(NULL)) + "</li>";
-  html += "<li>Uptime: " + formatNumberWithCommas(millis() / 1000) + "</li>";
-  html += "<li>Time: " + formatNumberWithCommas(getTime()) + "</li>";
-  html += "<li>Refresh Time: " + formatNumberWithCommas(getTime() + 60 * 60) + "</li>";
-
-  html += "</ul><h1>Spa Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaStatusData.lastUpdate) + "</li>";
-  html += "<li>magicNumber: " + String(spaStatusData.magicNumber) + "</li>";
-
-  html += "</ul><h1>Configuration Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaConfigurationData.lastUpdate) + "</li>";
-  html += "<li>lastRequest: " + formatNumberWithCommas(spaConfigurationData.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaConfigurationData.magicNumber) + "</li>";
-  html += "<li>staleData: " + String(staleData(spaConfigurationData)) + "</li>";
-  html += "<li>retryRequest: " + String(retryRequest(spaConfigurationData)) + "</li>";
-
-  html += "</ul><h1>Preferences Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaPreferencesData.lastUpdate) + "</li>";
-  html += "<li>lastRequest: " + formatNumberWithCommas(spaPreferencesData.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaPreferencesData.magicNumber) + "</li>";
-  html += "<li>staleData: " + String(staleData(spaPreferencesData)) + "</li>";
-  html += "<li>retryRequest: " + String(retryRequest(spaPreferencesData)) + "</li>";
-
-  html += "</ul><h1>Filters Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaFilterSettingsData.lastUpdate) + "</li>";
-  html += "<li>lastRequest: " + formatNumberWithCommas(spaFilterSettingsData.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaFilterSettingsData.magicNumber) + "</li>";
-  html += "<li>staleData: " + String(staleData(spaFilterSettingsData)) + "</li>";
-  html += "<li>retryRequest: " + String(retryRequest(spaFilterSettingsData)) + "</li>";
-
-  html += "</ul><h1>Information Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaInformationData.lastUpdate) + "</li>";
-  html += "<li>lastRequest: " + formatNumberWithCommas(spaInformationData.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaInformationData.magicNumber) + "</li>";
-  html += "<li>staleData: " + String(staleData(spaInformationData)) + "</li>";
-  html += "<li>retryRequest: " + String(retryRequest(spaInformationData)) + "</li>";
-
-  html += "</ul><h1>Fault Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaFaultLogData.lastUpdate) + "</li>";
-  html += "<li>lastRequest: " + formatNumberWithCommas(spaFaultLogData.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaFaultLogData.magicNumber) + "</li>";
-  html += "<li>staleData: " + String(staleData(spaFaultLogData)) + "</li>";
-  html += "<li>retryRequest: " + String(retryRequest(spaFaultLogData)) + "</li>";
-
-  html += "</ul><h1>spaSettings0x04Data Status</h1><ul>";
-  html += "<li>lastUpdate: " + formatNumberWithCommas(spaSettings0x04Data.lastUpdate) + "</li>";
-  html += "<li>lastRequest: " + formatNumberWithCommas(spaSettings0x04Data.lastRequest) + "</li>";
-  html += "<li>magicNumber: " + String(spaSettings0x04Data.magicNumber) + "</li>";
-  html += "<li>staleData: " + String(staleData(spaSettings0x04Data)) + "</li>";
-  html += "<li>retryRequest: " + String(retryRequest(spaSettings0x04Data)) + "</li>";
-
-  html += "</ul></body></html>";
-
-  request->send(200, "text/html", html);
-  Log.verbose("[Web]: handleStatus %p %s %s" CR, request->client()->remoteIP(), request->methodToString(), request->url().c_str());
-
-  // Log.verbose(F("[Web]: Response sent %s" CR), html.c_str());
 }
 
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels)

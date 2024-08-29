@@ -183,25 +183,31 @@ void configurationRequest()
   unsigned char filter_settings_request[] = FILTER_SETTINGS_REQUEST;
   unsigned char information_request[] = INFORMATION_REQUEST;
 
+  String request = "";
+
   if (staleData(spaConfigurationData) && retryRequest(spaConfigurationData))
   {
     append_request(byte_array, &offset, config_request, sizeof(config_request));
     spaConfigurationData.lastRequest = getTime();
+    request += "Configuration ";
   }
   if (staleData(spaSettings0x04Data) && retryRequest(spaSettings0x04Data))
   {
     append_request(byte_array, &offset, settings_request, sizeof(settings_request));
     spaSettings0x04Data.lastRequest = getTime();
+    request += "Settings ";
   }
   if (staleData(spaFilterSettingsData) && retryRequest(spaFilterSettingsData))
   {
     append_request(byte_array, &offset, filter_settings_request, sizeof(filter_settings_request));
     spaFilterSettingsData.lastRequest = getTime();
+    request += "Filter ";
   }
-  if (staleData(spaInformationData))
+  if (staleData(spaInformationData) && retryRequest(spaInformationData))
   {
     append_request(byte_array, &offset, information_request, sizeof(information_request));
     spaInformationData.lastRequest = getTime();
+    request += "Information ";
   }
 
   if (offset)
@@ -215,7 +221,7 @@ void configurationRequest()
     }
     else
     {
-      Log.verbose(F("[Mess]: Queuing request to spa %s" CR), msgToString(messageToSend->message, messageToSend->length).c_str());
+      Log.verbose(F("[Mess]: Queuing request to spa '%s' - %s" CR), request.c_str(), msgToString(messageToSend->message, messageToSend->length).c_str());
     }
   }
 }

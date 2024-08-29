@@ -39,3 +39,4 @@
 # Project specific files
 config.h
 /balboa-spa
+src/main.ino.cpp
