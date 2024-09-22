@@ -1,3 +1,7 @@
+# I have moved this code base to https://github.com/NorthernMan54/esp32_balboa_spa
+
+And this is no longer used or supported
+
 # esp32_balboa_panel
  Panel for Balboa Spa Modules
 
